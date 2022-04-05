@@ -41,25 +41,12 @@ namespace ClassicUO.Game.Scenes
 {
     internal abstract class Scene : IDisposable
     {
-        private uint _time_cleanup = Time.Ticks + 5000;
-
-        protected Scene(int sceneID, bool canresize, bool maximized, bool loadaudio)
-        {
-            CanResize = canresize;
-            CanBeMaximized = maximized;
-            CanLoadAudio = loadaudio;
-            Camera = new Camera();
-        }
-
         public bool IsDestroyed { get; private set; }
-
         public bool IsLoaded { get; private set; }
-
         public int RenderedObjectsCount { get; protected set; }
+        public Camera Camera { get; } = new Camera(0.5f, 2.5f, 0.1f);
 
-        public AudioManager Audio { get; set; }
 
-        public Camera Camera { get; }
 
         public virtual void Dispose()
         {
@@ -68,50 +55,31 @@ namespace ClassicUO.Game.Scenes
                 return;
             }
 
-            IsDestroyed = true;
             Unload();
+            IsDestroyed = true;          
         }
 
-        public virtual void Update(double totalTime, double frameTime)
-        {
-            Audio?.Update();
-            Camera.Update();
-
-            if (_time_cleanup < Time.Ticks)
-            {
-                World.Map?.ClearUnusedBlocks();
-                _time_cleanup = Time.Ticks + 500;
-            }
-        }
-
-        public readonly bool CanResize, CanBeMaximized, CanLoadAudio;
-        public readonly int ID;
-
-        public virtual void FixedUpdate(double totalTime, double frameTime)
-        {
-        }
-
-
-        public virtual void Load()
-        {
-            if (CanLoadAudio)
-            {
-                Audio = new AudioManager();
-                Audio.Initialize();
-            }
-
-            IsLoaded = true;
-        }
-
-        public virtual void Unload()
-        {
-            Audio?.StopMusic();
+        public virtual void Update()
+        {           
+            Camera.Update(true);
         }
 
         public virtual bool Draw(UltimaBatcher2D batcher)
         {
             return true;
         }
+
+
+        public virtual void Load()
+        {
+            IsLoaded = true;
+        }
+
+        public virtual void Unload()
+        {
+            IsLoaded = false;
+        }
+       
 
         internal virtual bool OnMouseUp(MouseButtonType button) => false;
         internal virtual bool OnMouseDown(MouseButtonType button) => false;

@@ -48,6 +48,9 @@ using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Utility.Platforms;
 using Microsoft.Xna.Framework;
 using MathHelper = ClassicUO.Utility.MathHelper;
+using ClassicUO.Configuration;
+using ClassicUO.Game.Scenes;
+using ClassicUO.Utility.Logging;
 
 namespace ClassicUO.Game
 {
@@ -59,7 +62,7 @@ namespace ClassicUO.Game
 
         public static Point RangeSize;
 
-        public static PlayerMobile Player;
+        public static PlayerMobile Player { get; private set; }
 
         public static HouseCustomizationManager CustomHouseManager;
 
@@ -142,12 +145,7 @@ namespace ClassicUO.Game
 
                         Map = new Map.Map(value);
 
-                        Player.X = x;
-                        Player.Y = y;
-                        Player.Z = z;
-                        Player.UpdateScreenPosition();
-                        Player.AddToTile();
-
+                        Player.SetInWorldTile(x, y, z);
                         Player.ClearSteps();
                     }
                     else
@@ -156,9 +154,9 @@ namespace ClassicUO.Game
                     }
 
                     // force cursor update when switching map
-                    if (UIManager.GameCursor != null)
+                    if (Client.Game.GameCursor != null)
                     {
-                        UIManager.GameCursor.Graphic = 0xFFFF;
+                        Client.Game.GameCursor.Graphic = 0xFFFF;
                     }
                     
                     UoAssist.SignalMapChanged(value);
@@ -183,6 +181,26 @@ namespace ClassicUO.Game
         public static string ServerName { get; set; }
 
 
+
+        public static void CreatePlayer(uint serial)
+        {
+            if (ProfileManager.CurrentProfile == null)
+            {
+                string lastChar = LastCharacterManager.GetLastCharacter(LoginScene.Account, World.ServerName);
+                ProfileManager.Load(World.ServerName, LoginScene.Account, lastChar);
+            }
+
+            if (Player != null)
+            {
+                Clear();
+            }
+
+            Player = new PlayerMobile(serial);
+            Mobiles.Add(Player);
+
+            Log.Trace($"Player [0x{serial:X8}] created");
+        }
+
         public static void ChangeSeason(Season season, int music)
         {
             Season = season;
@@ -193,7 +211,7 @@ namespace ClassicUO.Game
                 {
                     for (int y = 0; y < 8; y++)
                     {
-                        for (GameObject obj = chunk.GetHeadObject(x, y); obj != null; obj = obj.TNext)
+                        for (GameObject obj = chunk?.GetHeadObject(x, y); obj != null; obj = obj.TNext)
                         {
                             obj.UpdateGraphicBySeason();
                         }
@@ -202,10 +220,10 @@ namespace ClassicUO.Game
             }
 
             //TODO(deccer): refactor this out into _audioPlayer.PlayMusic(...)
-            UOMusic currentMusic = Client.Game.Scene.Audio.GetCurrentMusic();
-            if (currentMusic == null || currentMusic.Index == Client.Game.Scene.Audio.LoginMusicIndex)
+            UOMusic currentMusic = Client.Game.Audio.GetCurrentMusic();
+            if (currentMusic == null || currentMusic.Index == Client.Game.Audio.LoginMusicIndex)
             {
-                Client.Game.Scene.Audio.PlayMusic(music, false);
+                Client.Game.Audio.PlayMusic(music, false);
             }
         }
 
@@ -331,7 +349,7 @@ namespace ClassicUO.Game
             return true;
         }
 
-        public static void Update(double totalTime, double frameTime)
+        public static void Update()
         {
             if (Player != null)
             {
@@ -379,7 +397,7 @@ namespace ClassicUO.Game
 
                 foreach (Mobile mob in Mobiles.Values)
                 {
-                    mob.Update(totalTime, frameTime);
+                    mob.Update();
 
                     if (do_delete && mob.Distance > ClientViewRange /*CheckToRemove(mob, ClientViewRange)*/)
                     {
@@ -433,7 +451,7 @@ namespace ClassicUO.Game
 
                 foreach (Item item in Items.Values)
                 {
-                    item.Update(totalTime, frameTime);
+                    item.Update();
 
                     if (do_delete && item.OnGround && item.Distance > ClientViewRange /*CheckToRemove(item, ClientViewRange)*/)
                     {
@@ -466,8 +484,8 @@ namespace ClassicUO.Game
                     _toRemove.Clear();
                 }
 
-                _effectManager.Update(totalTime, frameTime);
-                WorldTextManager.Update(totalTime, frameTime);
+                _effectManager.Update();
+                WorldTextManager.Update();
                 WMapManager.RemoveUnupdatedWEntity();
             }
         }

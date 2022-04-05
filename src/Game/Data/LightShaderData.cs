@@ -30,62 +30,32 @@
 
 #endregion
 
-using System;
-using System.Collections.Generic;
-using ClassicUO.Game.Data;
-using ClassicUO.Game.Managers;
-using ClassicUO.IO.Resources;
-using ClassicUO.Utility;
+using static ClassicUO.Game.Data.LightColors;
 
-namespace ClassicUO.Game.GameObjects
+namespace ClassicUO.Game.Data
 {
-    internal abstract partial class NavigationTileGameObject : GameObject
+    internal struct LightShaderData
     {
-
-        protected NavigationTileGameObject()
+        public LightShaderData(uint rgb, LightShaderCurve redcurve = LightShaderCurve.Standard, LightShaderCurve greencurve = LightShaderCurve.Standard, LightShaderCurve bluecurve = LightShaderCurve.Standard)
         {
-
-            Hue = 0XFFFF;
-            AllowedToDraw = true;
-            AlphaHue = 0xFF;
-            AnimDataFrame = default;
-            IsEnabled = true;
-            AnimIndex = 0;
-
+            RGB = rgb;
+            Hue = 0;
+            RedCurve = redcurve;
+            GreenCurve = greencurve;
+            BlueCurve = bluecurve;
         }
 
-        public bool IsMoving => Target != null || TargetX != 0 && TargetY != 0;
-
-        public bool CanCreateExplosionEffect;
-        public ushort AnimationGraphic = 0xFFFF;
-        public AnimDataFrame AnimDataFrame;
-        public byte AnimIndex;
-        public float AngleToTarget;
-        public GraphicEffectBlendMode Blend;
-        public long Duration = -1;
-        public uint IntervalInMs;
-        public bool IsEnabled;
-        public long NextChangeFrameTime;
-        public GameObject Source;
-        protected GameObject Target;
-        protected int TargetX;
-        protected int TargetY;
-        protected int TargetZ;
-
-      
-        public override void Update(double totalTime, double frameTime)
+        public LightShaderData(ushort hue)
         {
-            base.Update(totalTime, frameTime);
-
-            
+            RGB = 0;
+            Hue = hue;
+            RedCurve = GreenCurve = BlueCurve = LightShaderCurve.Standard;
         }
 
-        public override void Destroy()
-        {
-            AnimIndex = 0;
-            Source = null;
-            Target = null;
-            base.Destroy();
-        }
+        public uint RGB;
+        public ushort Hue;
+        public LightShaderCurve RedCurve;
+        public LightShaderCurve GreenCurve;
+        public LightShaderCurve BlueCurve;
     }
 }
