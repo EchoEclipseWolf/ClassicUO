@@ -35,6 +35,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Threading.Tasks;
 using System.Xml;
 using ClassicUO.Configuration;
 using ClassicUO.Data;
@@ -56,6 +57,10 @@ namespace ClassicUO.Game.Managers
         private readonly uint[] _itemsInHand = new uint[2];
         private MacroObject _lastMacro;
         private long _nextTimer;
+        private static readonly Dictionary<string, int> _macroTargetingDictionary = new Dictionary<string, int>();
+
+        private static int _moveItemsThatContainPropFromToResult = -1;
+        private static int _moveItemsThatContainNameFromToResult = -1;
 
         private readonly byte[] _skillTable =
         {
@@ -1126,6 +1131,35 @@ namespace ClassicUO.Game.Managers
                     }
 
                     break;
+                case MacroType.WaitForPromptTarget:
+                    string waitForPromptTargetText = ((MacroObjectString)macro).Text;
+
+                    if (WaitForTargetTimer == 0)
+                    {
+                        WaitForTargetTimer = Time.Ticks + Constants.WAIT_FOR_TARGET_DELAY;
+                    }
+                    //_macroTargetingDictionary
+                    if (_macroTargetingDictionary.ContainsKey(waitForPromptTargetText))
+                    {
+                        if (_macroTargetingDictionary[waitForPromptTargetText] == -1) {
+                            result = 2;
+                            GameActions.Print($"Macro Aborted: Target is Invalid");
+                            _macroTargetingDictionary.Clear();
+                        }
+
+                        WaitForTargetTimer = 0;
+                    } else if (WaitForTargetTimer < Time.Ticks) {
+                        WaitForTargetTimer = 0;
+                        result = 2;
+                        GameActions.Print($"Macro Aborted: Targetting Took Too Long");
+                        _macroTargetingDictionary.Clear();
+                    }
+                    else
+                    {
+                        result = 1;
+                    }
+
+                    break;
 
                 case MacroType.TargetNext:
 
@@ -1555,6 +1589,196 @@ namespace ClassicUO.Game.Managers
                     ProfileManager.CurrentProfile.EnableCaveBorder = !ProfileManager.CurrentProfile.EnableCaveBorder;
 
                     break;
+                
+                case MacroType.BandageMostHurtFollower:
+                    var followers = World.FindMobilesInRange(ScanTypeObject.Followers, 1.0f);
+
+                    byte highestPerct = 100;
+                    Mobile toHeal = null;
+
+                    foreach (var follower in followers) {
+                        if (follower.HitsPercentage < highestPerct) {
+                            highestPerct = follower.HitsPercentage;
+                            toHeal = follower;
+                        }
+                    }
+
+                    if (toHeal != null) {
+                        TargetManager.Target(toHeal.Serial);
+                        Item bandage = World.Player.FindBandage();
+
+                        
+                    }
+
+                    break;
+                case MacroType.PromptTarget:
+                    string targetingId = ((MacroObjectString)macro).Text;
+                    GameActions.Print($"Select the macro target for id {targetingId}");
+                    TargetManager.SetTargeting(CursorTarget.MacroTargetting, 0, TargetType.Neutral, targetingId, (targetId, serial) => {
+                        _macroTargetingDictionary[targetingId] = serial;
+                    });
+
+                    break;
+
+                case MacroType.MoveItemsThatContainPropFromTo: {
+                    if (_moveItemsThatContainPropFromToResult == -1) {
+                        string fromToText = ((MacroObjectString) macro).Text;
+                        var splitText = fromToText.Split(',');
+
+                        if (splitText.Length <= 2) {
+                            result = 2;
+                            GameActions.Print("[MoveItemsThatContainPropFromTo] Invalid From To Text");
+                            _macroTargetingDictionary.Clear();
+                                break;
+                        }
+
+                        var fromText = splitText[0].Trim();
+                        var toText = splitText[1].Trim();
+                        var containsText = splitText[2].Trim();
+
+                        if (!_macroTargetingDictionary.ContainsKey(fromText) || !_macroTargetingDictionary.ContainsKey(toText) || !SerialHelper.IsValid((uint) _macroTargetingDictionary[fromText]) || !SerialHelper.IsValid((uint) _macroTargetingDictionary[toText])) {
+                            result = 2;
+                            GameActions.Print("[MoveItemsThatContainPropFromTo] Invalid From To Targets");
+                            _macroTargetingDictionary.Clear();
+                                break;
+                        }
+
+                        var fromContainer = World.Get((uint) _macroTargetingDictionary[fromText]);
+                        var toContainer = World.Get((uint) _macroTargetingDictionary[toText]);
+
+                        _moveItemsThatContainPropFromToResult = 1;
+
+                        Task.Run
+                        (
+                            async () => {
+                                var containerItems = new List<Item>();
+                                for (LinkedObject i = fromContainer.Items; i != null; i = i.Next)
+                                {
+                                    var item = (Item)i;
+                                    containerItems.Add(item);
+                                }
+
+                                foreach (var item in containerItems) {
+                                    if (World.OPL.TryGetNameAndData(item.Serial, out var itemName, out var itemData))
+                                    {
+                                        if (itemData.ToLower().Contains(containsText.ToLower()) || containsText.Equals("*"))
+                                        {
+                                            GameActions.Print($"[MoveItemsThatContainPropFromTo] Moving item: {itemName}");
+                                            GameActions.PickUp(item.Serial, 0, 0);
+                                            await Task.Delay(500);
+                                            GameActions.DropItem(item.Serial, 0xFFFF, 0xFFFF, 0, toContainer.Serial);
+                                            await Task.Delay(500);
+                                        }
+                                    }
+                                }
+
+                                _moveItemsThatContainPropFromToResult = 0;
+                                _macroTargetingDictionary.Clear();
+                                GameActions.Print("[MoveItemsThatContainPropFromTo] Finished");
+                            }
+                        );
+                    }
+
+                    if (_moveItemsThatContainPropFromToResult == -1) {
+                        _macroTargetingDictionary.Clear();
+                        result = 2;
+                        break;
+                    }
+
+
+                    result = _moveItemsThatContainPropFromToResult;
+
+                    if (result == 0) {
+                        _moveItemsThatContainPropFromToResult = -1;
+                    }
+
+                    _macroTargetingDictionary.Clear();
+
+                    break;
+                }
+                case MacroType.MoveItemsThatContainNameFromTo:
+                    {
+                        if (_moveItemsThatContainNameFromToResult == -1)
+                        {
+                            string fromToText = ((MacroObjectString)macro).Text;
+                            var splitText = fromToText.Split(',');
+
+                            if (splitText.Length <= 2)
+                            {
+                                result = 2;
+                                GameActions.Print("[MoveItemsThatContainNameFromTo] Invalid From To Text");
+                                _macroTargetingDictionary.Clear();
+                                break;
+                            }
+
+                            var fromText = splitText[0].Trim();
+                            var toText = splitText[1].Trim();
+                            var containsText = splitText[2].Trim();
+
+                            if (!_macroTargetingDictionary.ContainsKey(fromText) || !_macroTargetingDictionary.ContainsKey(toText) || !SerialHelper.IsValid((uint)_macroTargetingDictionary[fromText]) || !SerialHelper.IsValid((uint)_macroTargetingDictionary[toText]))
+                            {
+                                result = 2;
+                                GameActions.Print("[MoveItemsThatContainNameFromTo] Invalid From To Targets");
+                                _macroTargetingDictionary.Clear();
+                                break;
+                            }
+
+                            var fromContainer = World.Get((uint)_macroTargetingDictionary[fromText]);
+                            var toContainer = World.Get((uint)_macroTargetingDictionary[toText]);
+
+                            _moveItemsThatContainNameFromToResult = 1;
+
+                            Task.Run
+                            (
+                                async () => {
+                                    var containerItems = new List<Item>();
+                                    for (LinkedObject i = fromContainer.Items; i != null; i = i.Next)
+                                    {
+                                        var item = (Item)i;
+                                        containerItems.Add(item);
+                                    }
+
+                                    foreach (var item in containerItems)
+                                    {
+                                        if (World.OPL.TryGetNameAndData(item.Serial, out var itemName, out var itemData))
+                                        {
+                                            if (itemName.ToLower().Contains(containsText.ToLower()) || containsText.Equals("*"))
+                                            {
+                                                GameActions.Print($"[MoveItemsThatContainNameFromTo] Moving item: {itemName}");
+                                                GameActions.PickUp(item.Serial, 0, 0);
+                                                await Task.Delay(500);
+                                                GameActions.DropItem(item.Serial, 0xFFFF, 0xFFFF, 0, toContainer.Serial);
+                                                await Task.Delay(500);
+                                            }
+                                        }
+                                    }
+
+                                    _moveItemsThatContainNameFromToResult = 0;
+                                    
+                                    GameActions.Print("[MoveItemsThatContainNameFromTo] Finished");
+                                }
+                            );
+                        }
+
+                        if (_moveItemsThatContainNameFromToResult == -1)
+                        {
+                            _macroTargetingDictionary.Clear();
+                            result = 2;
+                            break;
+                        }
+
+
+                        result = _moveItemsThatContainNameFromToResult;
+
+                        if (result == 0)
+                        {
+                            _moveItemsThatContainNameFromToResult = -1;
+                        }
+
+                        _macroTargetingDictionary.Clear();
+
+                        break;
+                    }
             }
 
 
@@ -1771,6 +1995,10 @@ namespace ClassicUO.Game.Managers
                 case MacroType.SetUpdateRange:
                 case MacroType.ModifyUpdateRange:
                 case MacroType.RazorMacro:
+                case MacroType.PromptTarget:
+                case MacroType.WaitForPromptTarget:
+                case MacroType.MoveItemsThatContainPropFromTo:
+                case MacroType.MoveItemsThatContainNameFromTo:
                     obj = new MacroObjectString(code, MacroSubType.MSC_NONE);
 
                     break;
@@ -1931,6 +2159,10 @@ namespace ClassicUO.Game.Managers
                 case MacroType.SetUpdateRange:
                 case MacroType.ModifyUpdateRange:
                 case MacroType.RazorMacro:
+                case MacroType.PromptTarget:
+                case MacroType.WaitForPromptTarget:
+                case MacroType.MoveItemsThatContainPropFromTo:
+                case MacroType.MoveItemsThatContainNameFromTo:
                     SubMenuType = 2;
 
                     break;
@@ -2043,7 +2275,12 @@ namespace ClassicUO.Game.Managers
         ToggleDrawRoofs,
         ToggleTreeStumps,
         ToggleVegetation,
-        ToggleCaveTiles
+        ToggleCaveTiles,
+        BandageMostHurtFollower,
+        PromptTarget,
+        WaitForPromptTarget,
+        MoveItemsThatContainPropFromTo,
+        MoveItemsThatContainNameFromTo,
     }
 
     internal enum MacroSubType

@@ -30,6 +30,7 @@
 
 #endregion
 
+using System;
 using ClassicUO.Configuration;
 using ClassicUO.Data;
 using ClassicUO.Game.Data;
@@ -52,7 +53,8 @@ namespace ClassicUO.Game.Managers
         Grab,
         SetGrabBag,
         HueCommandTarget,
-        IgnorePlayerTarget
+        IgnorePlayerTarget,
+        MacroTargetting
     }
 
     internal class CursorType
@@ -132,6 +134,8 @@ namespace ClassicUO.Game.Managers
     {
         private static uint _targetCursorId;
         private static readonly byte[] _lastDataBuffer = new byte[19];
+        private static Action<string, int> _targetingMacroReturnAction;
+        private static string _targetingId = "";
 
         public static uint LastAttack, SelectedTarget;
 
@@ -166,6 +170,12 @@ namespace ClassicUO.Game.Managers
             _targetCursorId = 0;
             MultiTargetInfo = null;
             TargetingType = 0;
+        }
+
+        public static void SetTargeting(CursorTarget targeting, uint cursorID, TargetType cursorType, string targetingId, Action<string, int> returnFunc) {
+            SetTargeting(targeting, cursorID, cursorType);
+            _targetingId = targetingId;
+            _targetingMacroReturnAction = returnFunc;
         }
 
         public static void SetTargeting(CursorTarget targeting, uint cursorID, TargetType cursorType)
@@ -219,6 +229,8 @@ namespace ClassicUO.Game.Managers
                 NetClient.Socket.Send_TargetCancel(TargetingState, _targetCursorId, (byte)TargetingType);
                 IsTargeting = false;
             }
+
+            _targetingMacroReturnAction?.Invoke(_targetingId, -1);
 
             Reset();
         }
@@ -404,6 +416,13 @@ namespace ClassicUO.Game.Managers
                         }
                         CancelTarget();
                         return;
+
+                    case CursorTarget.MacroTargetting: {
+                        _targetingMacroReturnAction?.Invoke(_targetingId, (int)serial);
+                        ClearTargetingWithoutTargetCancelPacket();
+                            
+                        return;
+                    }
                 }
             }
         }

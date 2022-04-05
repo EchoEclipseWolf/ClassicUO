@@ -100,6 +100,7 @@ namespace ClassicUO.Game.UI.Gumps
         protected string _name;
         protected bool _outOfRange;
         protected StbTextBox _textBox;
+        protected Label _rangeLabel;
 
         protected abstract void BuildGump();
 
@@ -113,6 +114,8 @@ namespace ClassicUO.Game.UI.Gumps
             
             _textBox?.Dispose();
             _textBox = null;
+            _rangeLabel?.Dispose();
+            _rangeLabel = null;
             base.Dispose();
         }
 
@@ -236,7 +239,30 @@ namespace ClassicUO.Game.UI.Gumps
                 UIManager.SystemChat?.SetFocus();
             }
 
+            
+
             base.OnMouseDown(x, y, button);
+        }
+
+        protected override void OnMouseUp(int x, int y, MouseButtonType button)
+        {
+            if (button == MouseButtonType.Left && !TargetManager.IsTargeting)
+            {
+                Entity entity = World.Get(LocalSerial);
+
+                if (entity != null)
+                {
+                    var screenPos = entity.GetScreenPosition();
+                    DelayedObjectClickManager.LastMouseX = (int)screenPos.X;
+                    DelayedObjectClickManager.LastMouseY = (int)screenPos.Y;
+
+                    DelayedObjectClickManager.LastMouseX = Mouse.Position.X + 5;
+                    DelayedObjectClickManager.LastMouseY = Mouse.Position.Y + 5;
+                    GameActions.OpenPopupMenu(entity.Serial);
+                }
+            }
+
+            base.OnMouseUp(x, y, button);
         }
 
         protected override bool OnMouseDoubleClick(int x, int y, MouseButtonType button)
@@ -389,6 +415,7 @@ namespace ClassicUO.Game.UI.Gumps
             }
 
             _textBox = null;
+            _rangeLabel = null;
 
             BuildGump();
         }
@@ -530,10 +557,13 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     _name = entity.Name;
 
-                    if (_textBox != null)
-                    {
-                        _textBox.SetText(_name);
-                    }
+                    _textBox?.SetText(_name);
+
+
+                }
+
+                if (entity != null && _rangeLabel != null) {
+                    _rangeLabel.Text = entity.Distance.ToString();
                 }
 
                 if (_outOfRange)
@@ -776,6 +806,13 @@ namespace ClassicUO.Game.UI.Gumps
                         }
                     );
                 }
+                
+                Add(
+                    _rangeLabel = new Label("-1", true, 999, 50) {
+                        X = 0,
+                        Y = 3,
+                    }
+                );
 
                 Add
                 (
@@ -1197,6 +1234,13 @@ namespace ClassicUO.Game.UI.Gumps
                             CanMove = true
                         }
                     );
+                    
+                    Add(
+                        _rangeLabel = new Label("-1", true, 999, 50) {
+                            X = 2,
+                            Y = 2,
+                        }
+                    );
                 }
             }
 
@@ -1349,6 +1393,7 @@ namespace ClassicUO.Game.UI.Gumps
             }
 
             _textBox = null;
+            _rangeLabel = null;
 
             BuildGump();
         }

@@ -32,6 +32,7 @@
 
 using System.Collections.Generic;
 using System.Linq;
+using System.Threading.Tasks;
 using ClassicUO.Configuration;
 using ClassicUO.Data;
 using ClassicUO.Game.Data;
@@ -57,6 +58,17 @@ namespace ClassicUO.Game.GameObjects
                 SkillEntry skill = SkillsLoader.Instance.Skills[i];
                 Skills[i] = new Skill(skill.Name, skill.Index, skill.HasAction);
             }
+
+            Task.Run
+            (
+                async () => {
+                    if (AiEngine.AiEngine.Instance == null) {
+                        new AiEngine.AiEngine();
+                    }
+
+                    await AiEngine.AiEngine.Instance.Loop();
+                }
+            );
         }
 
         public Skill[] Skills { get; }

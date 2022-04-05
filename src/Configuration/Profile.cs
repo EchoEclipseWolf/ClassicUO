@@ -592,7 +592,7 @@ namespace ClassicUO.Configuration
                                     break;
 
                                 case GumpType.Debug:
-                                    gump = new DebugGump(100, 100);
+                                    gump = new AIEngineOverlayGump(100, 100);
 
                                     break;
 

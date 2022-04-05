@@ -286,11 +286,11 @@ namespace ClassicUO.Game.UI.Gumps
 
                 case Buttons.Debug:
 
-                    DebugGump debugGump = UIManager.GetGump<DebugGump>();
+                    AIEngineOverlayGump debugGump = UIManager.GetGump<AIEngineOverlayGump>();
 
                     if (debugGump == null)
                     {
-                        debugGump = new DebugGump(100, 100);
+                        debugGump = new AIEngineOverlayGump(100, 100);
                         UIManager.Add(debugGump);
                     }
                     else

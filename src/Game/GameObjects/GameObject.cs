@@ -104,8 +104,9 @@ namespace ClassicUO.Game.GameObjects
         public ushort X, Y;
         public sbyte Z;
         public GameObject RenderListNext;
+        private Vector3 _position = Vector3.Zero;
+        public Vector3 Position => _position;
 
-    
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Vector2 GetScreenPosition()
@@ -155,8 +156,10 @@ namespace ClassicUO.Game.GameObjects
         {
         }
 
-        public void UpdateScreenPosition()
-        {
+        public void UpdateScreenPosition() {
+            _position.X = X;
+            _position.Y = Y;
+            _position.Z = Z;
             _screenPosition.X = (X - Y) * 22;
             _screenPosition.Y = (X + Y) * 22 - (Z << 2);
             IsPositionChanged = true;

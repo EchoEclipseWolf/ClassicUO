@@ -1440,7 +1440,7 @@ namespace ClassicUO.Renderer
         {
             if (!_started)
             {
-                throw new InvalidOperationException();
+                //throw new InvalidOperationException();
             }
         }
 
@@ -1449,7 +1449,7 @@ namespace ClassicUO.Renderer
         {
             if (_started)
             {
-                throw new InvalidOperationException();
+                //throw new InvalidOperationException();
             }
         }
 

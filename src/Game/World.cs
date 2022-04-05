@@ -30,8 +30,15 @@
 
 #endregion
 
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
+using System.Threading.Tasks;
+using AkatoshQuester.Helpers.LightGeometry;
+using ClassicUO.AiEngine;
+using ClassicUO.DatabaseUtility;
 using ClassicUO.IO.Audio;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
@@ -88,6 +95,14 @@ namespace ClassicUO.Game
         public static WorldTextManager WorldTextManager { get; } = new WorldTextManager();
 
         public static JournalManager Journal { get; } = new JournalManager();
+
+        private const int _savePathUpdateDelay = 20000;
+        private static Stopwatch _savePathUpdateStopwatch = Stopwatch.StartNew();
+
+        private const int _clearGridDelay = 300 * 1000;
+        private static Stopwatch _clearGridStopwatch = Stopwatch.StartNew();
+
+        private static ConcurrentQueue<Vector3> _positionsToAdd = new ConcurrentQueue<Vector3>();
 
 
         public static int MapIndex
@@ -204,6 +219,117 @@ namespace ClassicUO.Game
             return Math.Max(Math.Abs(obj.X - RangeSize.X), Math.Abs(obj.Y - RangeSize.Y)) > distance;
         }
         */
+
+        internal static async Task<bool> Pulse() {
+            MobileCache cache = new MobileCache();
+
+            List<uint> _mobileBlacklistedGrabs = new List<uint>();
+            PlayerMobile _foundPlayer = null;
+
+            while (true) {
+                int count = 0;
+
+                try {
+                    if (Player == null || string.IsNullOrEmpty(Player.Name)) {
+                        await Task.Delay(500);
+                        continue;
+                    }
+
+                    if (_foundPlayer == null) {
+                        _foundPlayer = Player;
+                        await Task.Delay(1000);
+                    }
+
+                    await Task.Delay(1);
+                    await Navigation.LoadCurrentMap();
+
+                    if (Navigation.CurrentMesh == null) {
+                        await Task.Delay(500);
+
+                        continue;
+                    }
+
+                    
+
+                    if (!Navigation.NavigationNeedsSaving) {
+                        _savePathUpdateStopwatch.Restart();
+                    }
+
+                    if (Navigation.NavigationNeedsSaving && _savePathUpdateStopwatch.ElapsedMilliseconds > _savePathUpdateDelay) {
+                        await Navigation.SaveGrid();
+                        NavigationNew.AkatoshMesh.New.Pathfinder.SaveWorld();
+                        _savePathUpdateStopwatch.Restart();
+                    }
+
+                    if (_clearGridStopwatch.ElapsedMilliseconds > _clearGridDelay) {
+                        Navigation.Clear();
+                        _clearGridStopwatch.Restart();
+                        Navigation.StopNavigation();
+                    }
+
+                    var mobiles = Mobiles.ToList();
+
+                    foreach (var keyValue in mobiles) {
+                        var serial = keyValue.Key;
+                        var mob = keyValue.Value;
+
+                        if (serial != default
+                            && !_mobileBlacklistedGrabs.Contains(serial)
+                            && !(mob is PlayerMobile)
+                            && !string.IsNullOrEmpty(mob.Name)
+                            && mob.NotorietyFlag != NotorietyFlag.Invulnerable
+                            && mob.NotorietyFlag != NotorietyFlag.Innocent
+                            && mob.NotorietyFlag != NotorietyFlag.Murderer
+                            && mob.Position.X != 65535
+                            && mob.Position.Y != 65535)
+                        {
+                            if (await Database.AddMobile(mob))
+                            {
+                                ++count;
+                                _mobileBlacklistedGrabs.Add(mob.Serial);
+                            }
+
+                        }
+
+                        if (mob.HitsMax == 0)
+                        {
+                            //GameActions.RequestMobileStatus(mob.Serial);
+                        }
+
+                    }
+
+                    int count1 = 0;
+                    while (_positionsToAdd.Count > 0) {
+                        if (_positionsToAdd.TryDequeue(out var pos)) {
+                            await Navigation.AddWalkableTile(pos);
+                            count1++;
+                        }
+                    }
+
+                    if (AiEngine.AiEngine.Instance.Navigation) {
+                        await Navigation.NavigateTo(new Point3D(3499, 2570, 14));
+                    }
+                }
+                catch (Exception e) {
+                    Console.WriteLine(e);
+                }
+
+            }
+
+            return true;
+        }
+
+        internal static async Task<bool> AddWalkablePulse() {
+            while (true) {
+                await Task.Delay(33);
+
+                if (Player != null && Player.Name != null && Player.Name.Length > 0) {
+                    _positionsToAdd.Enqueue(Player.Position);
+                }
+            }
+
+            return true;
+        }
 
         public static void Update(double totalTime, double frameTime)
         {
@@ -727,7 +853,53 @@ namespace ClassicUO.Game
             return 0;
         }
 
-       
+        public static List<Mobile> FindMobilesInRange(ScanTypeObject scanType, float range)
+        {
+            var list = new List<Mobile>();
+
+            IEnumerable<Mobile> mobiles = Mobiles.Values;
+            foreach (Mobile mobile in mobiles)
+            {
+                if (mobile.IsDestroyed || mobile == Player)
+                {
+                    continue;
+                }
+
+                switch (scanType)
+                {
+                    case ScanTypeObject.Party:
+                        if (!Party.Contains(mobile))
+                        {
+                            continue;
+                        }
+                        break;
+                    case ScanTypeObject.Followers:
+                        if (!(mobile.IsRenamable && mobile.NotorietyFlag != NotorietyFlag.Invulnerable && mobile.NotorietyFlag != NotorietyFlag.Enemy))
+                        {
+                            continue;
+                        }
+                        break;
+                    case ScanTypeObject.Hostile:
+                        if (mobile.NotorietyFlag == NotorietyFlag.Ally || mobile.NotorietyFlag == NotorietyFlag.Innocent || mobile.NotorietyFlag == NotorietyFlag.Invulnerable)
+                        {
+                            continue;
+                        }
+                        break;
+                    case ScanTypeObject.Objects:
+                        /* This was handled separately above */
+                        continue;
+                }
+
+                if (mobile.Distance > range) {
+                    continue;
+                }
+
+                list.Add(mobile);
+            }
+
+            return list;
+        }
+
         public static void Clear()
         {
             foreach (Mobile mobile in Mobiles.Values)

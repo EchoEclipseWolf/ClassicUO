@@ -32,12 +32,18 @@
 
 using System;
 using System.Collections.Generic;
+using AkatoshQuester.Helpers.Cartography;
+using ClassicUO.AiEngine;
 using ClassicUO.Configuration;
+using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Input;
+using ClassicUO.IO.Resources;
 using ClassicUO.Renderer;
+using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
+using Microsoft.Xna.Framework.Graphics;
 
 namespace ClassicUO.Game.Managers
 {
@@ -45,6 +51,7 @@ namespace ClassicUO.Game.Managers
     {
         private static readonly Dictionary<uint, Point> _gumpPositionCache = new Dictionary<uint, Point>();
         private static readonly Control[] _mouseDownControls = new Control[0xFF];
+        private static Texture2D _navigationTexture;
 
 
         //private static readonly Dictionary<uint, TargetLineGump> _targetLineGumps = new Dictionary<uint, TargetLineGump>();
@@ -395,9 +402,123 @@ namespace ClassicUO.Game.Managers
                 g.Draw(batcher, g.X, g.Y);
             }
 
+
+
             GameCursor?.Draw(batcher);
+            //DrawAiDebugInfo(batcher);
 
             batcher.End();
+        }
+
+        private static Vector2 WorldToScreen(Vector3 pos) {
+            GameScene gs = Client.Game.GetScene<GameScene>();
+            var offset = gs.ScreenOffset;
+
+            var screenPosition = new Vector2(0, 0);
+            screenPosition.X = (pos.X - pos.Y) * 22;
+            screenPosition.Y = (pos.X + pos.Y) * 22 - ((int)pos.Z << 2);
+
+            var point = new Vector2(0, 0) {
+                X = screenPosition.X - offset.X - 22,
+                Y = screenPosition.Y - offset.Y - 22
+            };
+
+            return point;
+        }
+
+        public static void DrawAiDebugInfo(UltimaBatcher2D batcher) {
+            if (World.Player == null || World.Player.Name == null || World.Player.Name.Length == 0 || Navigation.CurrentMesh == null) {
+                return;
+            }
+
+            var tilesNear = Navigation.CurrentMesh.GetPointsWithinDistance(World.Player.Position.ToPoint3D(), 100);
+            Vector3 hueVector = ShaderHueTranslator.GetHueVector(0);
+
+            var widthHeight = 20;
+
+            if (_navigationTexture == null) {
+                short w = 0;
+                short h = 0;
+                uint[] pixels = CircleOfTransparency.CreateCircleTexture(20, ref w, ref h);
+
+                var currentX = 0;
+                var currentY = 0;
+                var centerPoint = (int)(widthHeight / 2f);
+
+                for (int i = 0; i < pixels.Length; i++) {
+                    ref uint pixel = ref pixels[i];
+
+                    ushort value = (ushort) (pixel);
+
+                    if (value > 0xFF) {
+                        value = 0xFF;
+                    }
+
+                    var red = 0;
+                    var green = 0;
+                    var blue = 255;
+                    var alpha = 50;
+
+                    var r = red & 0xFF;
+                    var g = green & 0xFF;
+                    var b = blue & 0xFF;
+                    var a = alpha & 0xFF;
+
+                    var rgb = (a << 24) + (b << 16) + (g << 8) + (r);
+
+                    //pixel = (uint)((value << 24) | (value << 16) | (value << 8) | value);
+
+                    pixel = (uint) rgb;
+                    currentX++;
+
+                    if (currentX >= w) {
+                        currentX = 0;
+                        currentY++;
+                    }
+
+                }
+
+                _navigationTexture = new Texture2D(Client.Game.GraphicsDevice, w, h);
+                _navigationTexture.SetData(pixels);
+            }
+
+            foreach (var tile in tilesNear) {
+                var point = new Point((int) tile.Position.X, (int) tile.Position.Y);
+                var screenPos = WorldToScreen(new Vector3((float) tile.Position.X, (float)tile.Position.Y, (float)tile.Position.Z));
+                screenPos.X += 30;
+                screenPos.Y += 30;
+                var zoom = Client.Game.Scene.Camera.Zoom;
+
+                var texture = GumpsLoader.Instance.GetGumpTexture(100, out var bounds);
+                //texture = ArtLoader.Instance.GetStaticTexture(100, out var bounds1);
+
+                if (_navigationTexture != null)
+                {
+                    batcher.Draw
+                    (
+                        _navigationTexture,
+                        screenPos,
+                        new Rectangle(0, 0, widthHeight, widthHeight),
+                        hueVector,
+                        0f,
+                        Vector2.Zero,
+                        1f,
+                        SpriteEffects.None,
+                        0 + 0.5f
+                    );
+                }
+
+                batcher.DrawRectangle
+                (
+                    SolidColorTextureCache.GetTexture(Color.Green),
+                    10,
+                    10,
+                    100,
+                    100,
+                    hueVector
+                );
+            }
+            
         }
 
         public static void Add(Gump gump, bool front = true)

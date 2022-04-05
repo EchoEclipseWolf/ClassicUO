@@ -34,7 +34,9 @@ using System;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
+using System.Threading.Tasks;
 using ClassicUO.Configuration;
+using ClassicUO.DatabaseUtility;
 using ClassicUO.Game;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
@@ -88,6 +90,8 @@ namespace ClassicUO
             IsFixedTimeStep = false; // Settings.GlobalSettings.FixedTimeStep;
             TargetElapsedTime = TimeSpan.FromMilliseconds(1000.0 / 250.0);
             InactiveSleepTime = TimeSpan.Zero;
+
+            
         }
 
         public Scene Scene { get; private set; }
@@ -482,10 +486,22 @@ namespace ClassicUO
 
             if (Scene != null && Scene.IsLoaded && !Scene.IsDestroyed)
             {
-                Scene.Draw(_uoSpriteBatch);
+                try {
+                    Scene.Draw(_uoSpriteBatch);
+                }
+                catch (Exception e) {
+                    Console.WriteLine(e);
+                }
+                
             }
 
-            UIManager.Draw(_uoSpriteBatch);
+            try {
+                UIManager.Draw(_uoSpriteBatch);
+            }
+            catch (Exception e) {
+                Console.WriteLine(e);
+            }
+            
 
             if (World.InGame && SelectedObject.LastObject is TextObject t)
             {

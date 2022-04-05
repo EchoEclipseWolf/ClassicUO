@@ -33,8 +33,11 @@
 using System;
 using System.Diagnostics;
 using System.IO;
+using System.Threading.Tasks;
 using ClassicUO.Configuration;
 using ClassicUO.Data;
+using ClassicUO.DatabaseUtility;
+using ClassicUO.Game;
 using ClassicUO.Game.Data;
 using ClassicUO.IO;
 using ClassicUO.Network;
@@ -80,6 +83,12 @@ namespace ClassicUO
                 {
                     Plugin.Create(p);
                 }
+
+                Database.CreateConnection();
+                Task.Run(async () =>
+                             await World.Pulse());
+                Task.Run(async () =>
+                             await World.AddWalkablePulse());
 
                 Log.Trace("Done!");
 
