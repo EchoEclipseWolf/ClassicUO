@@ -127,7 +127,7 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     IsChecked = AiEngine.AiEngine.Instance.TamingTraining,
                     X = 2,
-                    Y = 70
+                    Y = 160
                 }
             );
 

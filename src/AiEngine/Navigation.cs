@@ -356,7 +356,7 @@ namespace ClassicUO.AiEngine
 
         public static async Task<bool> SaveGrid() {
             MapUpdating = true;
-            GameActions.MessageOverhead("Saving current navigation map", World.Player.Serial);
+            //GameActions.MessageOverhead("Saving current navigation map", World.Player.Serial);
             var mapName = MobileCache.MapNameFromIndex(_loadedMapIndex);
 
             if (File.Exists(GetMasterSavePath)) {
@@ -392,7 +392,7 @@ namespace ClassicUO.AiEngine
             }
 
 
-            GameActions.MessageOverhead("Finished: saving current navigation map", World.Player.Serial);
+            //GameActions.MessageOverhead("Finished: saving current navigation map", World.Player.Serial);
             NavigationNeedsSaving = false;
             MapUpdating = false;
 
@@ -612,7 +612,7 @@ namespace ClassicUO.AiEngine
 
             GC.Collect();
 
-            GameActions.MessageOverhead($"Cleared Navigation", World.Player.Serial);
+            //GameActions.MessageOverhead($"Cleared Navigation", World.Player.Serial);
         }
 
         private static Node _previousNode;

@@ -272,7 +272,7 @@ namespace ClassicUO
             Settings.GlobalSettings.FPS = rate;
 
             _intervalFixedUpdate[0] = frameDelay;
-            _intervalFixedUpdate[1] = 217; // 5 FPS
+            _intervalFixedUpdate[1] = 33; // 5 FPS
         }
 
         private void SetWindowPosition(int x, int y)

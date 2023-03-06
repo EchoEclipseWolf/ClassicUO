@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using ClassicUO.AiEngine.AiEngineTasks;
+using ClassicUO.Game;
 
 namespace ClassicUO.AiEngine {
     public class AiEngine {
@@ -30,7 +31,14 @@ namespace ClassicUO.AiEngine {
         }
 
         public async Task<bool> Pulse() {
+            if (World.Player == null || World.Player.Name == null || World.Player.Name.Length == 0) {
+                await Task.Delay(10);
+
+                return true;
+            }
+
             foreach (var task in _tasks.OrderByDescending(t => t.Priority())) {
+                
                 if (await task.Pulse()) {
                     await Task.Delay(10);
                     return true;

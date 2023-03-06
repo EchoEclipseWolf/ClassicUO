@@ -309,7 +309,7 @@ namespace ClassicUO.Game
 
                         }
 
-                        if (mob.HitsMax == 0)
+                        if (mob != null && mob.HitsMax == 0)
                         {
                             //GameActions.RequestMobileStatus(mob.Serial);
                         }

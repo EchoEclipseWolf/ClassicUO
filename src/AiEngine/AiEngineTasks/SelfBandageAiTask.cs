@@ -8,6 +8,9 @@ using ClassicUO.Game.Managers;
 namespace ClassicUO.AiEngine.AiEngineTasks {
     public class SelfBandageAiTask : BaseAITask {
         public override int Priority() {
+            if (World.Player == null) {
+                return 0;
+            }
             return 100-World.Player.HitsPercentage;
         }
         
