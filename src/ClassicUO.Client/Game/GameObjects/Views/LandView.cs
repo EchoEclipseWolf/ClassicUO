@@ -36,6 +36,9 @@ using ClassicUO.Renderer;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using System;
+using ClassicUO.AiEngine;
+using AkatoshQuester.Helpers.LightGeometry;
+using System.Drawing;
 
 namespace ClassicUO.Game.GameObjects
 {
@@ -52,6 +55,18 @@ namespace ClassicUO.Game.GameObjects
 
             ushort hue = Hue;
 
+            var foundNavPoint = false;
+
+            if (Navigation.CurrentMesh != null) {
+                var point = new Point3D(Position.X, Position.Y, Position.Z);
+                Navigation.LoadGridForPoint(point);
+                var meshPoints = Navigation.GetNode(point);
+
+                if (meshPoints != null) {
+                    foundNavPoint = true;
+                }
+            }
+
             if (ProfileManager.CurrentProfile.HighlightGameObjects && SelectedObject.Object == this)
             {
                 hue = Constants.HIGHLIGHT_CURRENT_OBJECT_HUE;
@@ -63,6 +78,9 @@ namespace ClassicUO.Game.GameObjects
             else if (World.Player.IsDead && ProfileManager.CurrentProfile.EnableBlackWhiteEffect)
             {
                 hue = Constants.DEAD_RANGE_COLOR;
+            }
+            else if (foundNavPoint) {
+                hue = Constants.OUT_RANGE_COLOR;
             }
 
             Vector3 hueVec;

@@ -107,6 +107,7 @@ namespace ClassicUO.Game
         private static Stopwatch _clearGridStopwatch = Stopwatch.StartNew();
 
         private static ConcurrentQueue<Vector3> _positionsToAdd = new ConcurrentQueue<Vector3>();
+        private static Vector3 _lastAddedPosition = Vector3.Zero;
 
 
         public static int MapIndex
@@ -340,9 +341,10 @@ namespace ClassicUO.Game
 
         internal static async Task<bool> AddWalkablePulse() {
             while (true) {
-                await Task.Delay(33);
+                await Task.Delay(1);
 
-                if (Player != null && Player.Name != null && Player.Name.Length > 0) {
+                if (Player != null && Player.Name != null && Player.Name.Length > 0 && Player.Position != _lastAddedPosition) {
+                    _lastAddedPosition = Player.Position;
                     _positionsToAdd.Enqueue(Player.Position);
                 }
             }
