@@ -15,6 +15,7 @@ using AkatoshQuester.Helpers.Collections;
 using AkatoshQuester.Helpers.LightGeometry;
 using AkatoshQuester.Helpers.Nodes;
 using ClassicUO.AiEngine;
+using ClassicUO.Game;
 
 
 namespace AkatoshQuester.Helpers.Cartography
@@ -196,22 +197,22 @@ namespace AkatoshQuester.Helpers.Cartography
 			return _Open.Count>0;
 		}
 
-        private HashSet<int> SearchedIds = new HashSet<int>();
+        private HashSet<long> SearchedIds = new HashSet<long>();
 
         private void Propagate(Track TrackToPropagate)
 		{
-            foreach (var A in TrackToPropagate.EndNode.LinkedIds) {
+            foreach (var A in TrackToPropagate.EndNode.Linked) {
                 try {
-                    var node = Navigation.CurrentMesh.NodesById[A];
+                    var node = Navigation.CurrentMesh.FindByNodeLink(A);
                     if (node is AkatoshTeleporterNode teleNode) {
                         int bob = 1;
                     }
 
-                    if (SearchedIds.Contains(A)) {
+                    if (SearchedIds.Contains(A.Id)) {
                         continue;
                     }
 
-                    foreach (var nodeLinkedFile in node.LinkedFiles) {
+                    foreach (var nodeLinkedFile in node.Linked) {
                         Navigation.LoadGridForFilePoint(nodeLinkedFile);
                     }
 

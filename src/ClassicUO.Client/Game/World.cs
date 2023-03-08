@@ -275,16 +275,16 @@ namespace ClassicUO.Game
                         _savePathUpdateStopwatch.Restart();
                     }
 
-                    if (Navigation.NavigationNeedsSaving && _savePathUpdateStopwatch.ElapsedMilliseconds > _savePathUpdateDelay) {
+                    if (Navigation.NavigationNeedsSaving && !Navigation.IsLoadingFilePoint && _savePathUpdateStopwatch.ElapsedMilliseconds > _savePathUpdateDelay) {
                         await Navigation.SaveGrid();
                         NavigationNew.AkatoshMesh.New.Pathfinder.SaveWorld();
                         _savePathUpdateStopwatch.Restart();
                     }
 
                     if (_clearGridStopwatch.ElapsedMilliseconds > _clearGridDelay) {
-                        Navigation.Clear();
-                        _clearGridStopwatch.Restart();
-                        Navigation.StopNavigation();
+                        //Navigation.Clear();
+                        //_clearGridStopwatch.Restart();
+                        //Navigation.StopNavigation();
                     }
 
                     var mobiles = Mobiles.ToList();
@@ -326,8 +326,9 @@ namespace ClassicUO.Game
                         }
                     }
 
-                    if (AiEngine.AiEngine.Instance.Navigation) {
-                        await Navigation.NavigateTo(new Point3D(3499, 2570, 14));
+                    if (AiEngine.AiEngine.Instance.Navigation && !Navigation.IsLoadingFilePoint) {
+                        await Navigation.NavigateTo(new Point3D(3497, 2570, 14));
+                        await Task.Delay(100);
                     }
                 }
                 catch (Exception e) {
@@ -343,7 +344,7 @@ namespace ClassicUO.Game
             while (true) {
                 await Task.Delay(1);
 
-                if (Player != null && Player.Name != null && Player.Name.Length > 0 && Player.Position != _lastAddedPosition) {
+                if (AiEngine.AiEngine.Instance.Navigation && !Navigation.IsLoading && !Navigation.IsLoadingFilePoint && Player != null && Player.Name != null && Player.Name.Length > 0 && Player.Position != _lastAddedPosition) {
                     _lastAddedPosition = Player.Position;
                     _positionsToAdd.Enqueue(Player.Position);
                 }

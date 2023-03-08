@@ -184,6 +184,46 @@ namespace ClassicUO.DatabaseUtility
             return "Trammel";
         }
 
+        public static int MapIndexFromName(string mapName)
+        {
+            if (mapName == "Felucca")
+            {
+                return 0;
+            }
+
+            if (mapName == "Trammel")
+            {
+                return 1;
+            }
+
+            if (mapName == "Ilshenar")
+            {
+                return 2;
+            }
+
+            if (mapName == "Malas")
+            {
+                return 3;
+            }
+
+            if (mapName == "Tokuno")
+            {
+                return 4;
+            }
+
+            if (mapName == "TerMur")
+            {
+                return 5;
+            }
+
+            if (mapName == "Teareek")
+            {
+                return 9;
+            }
+
+            return 1;
+        }
+
         private string ReplacedTrimmedNames(string name) {
             if (name.Equals("a raven") 
                 || name.Equals("a chickadee") 

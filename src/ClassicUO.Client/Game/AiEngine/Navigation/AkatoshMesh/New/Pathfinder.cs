@@ -65,12 +65,12 @@ namespace ClassicUO.NavigationNew.AkatoshMesh.New
         }
 
         public class PathCache {
-            public int StartNodeId;
-            public int EndNodeId;
+            public long StartNodeId;
+            public long EndNodeId;
             public int MaxPathCount;
             public List<Node> Path;
 
-            public PathCache(int startingNodeId, int endNodeId, int maxPathCount, List<Node> path) {
+            public PathCache(long startingNodeId, long endNodeId, int maxPathCount, List<Node> path) {
                 StartNodeId = startingNodeId;
                 EndNodeId = endNodeId;
                 MaxPathCount = maxPathCount;
@@ -89,8 +89,8 @@ namespace ClassicUO.NavigationNew.AkatoshMesh.New
             PathCaches.Clear();
 
             if (File.Exists(GetSavePath)) {
-                var text = File.ReadAllText(GetSavePath);
-                PathCaches = JsonConvert.DeserializeObject<List<PathCache>>(text);
+                //var text = File.ReadAllText(GetSavePath);
+                //PathCaches = JsonConvert.DeserializeObject<List<PathCache>>(text);
             }
         }
 
@@ -126,6 +126,9 @@ namespace ClassicUO.NavigationNew.AkatoshMesh.New
         }
 
         private static PathCache GetCachedPath(Node start, Node end, int maxSearchPath) {
+            if (PathCaches == null) {
+                PathCaches = new List<PathCache>();
+            }
             return PathCaches.FirstOrDefault(p => p.StartNodeId == start.Id && p.EndNodeId == end.Id && p.MaxPathCount == maxSearchPath);
         }
 
@@ -179,7 +182,7 @@ namespace ClassicUO.NavigationNew.AkatoshMesh.New
             SearchedIds.Clear();
 
             var cachedPath = GetCachedPath(start, end, maxSearch);
-            if (cachedPath != null) {
+            if (cachedPath != null && false) {
                 _lastCache = cachedPath;
                  return cachedPath.Path;
             }
@@ -188,7 +191,9 @@ namespace ClassicUO.NavigationNew.AkatoshMesh.New
                 return new List<Node> {end};
             }
 
-            if (start.LinkedIds.Contains(end.Id)) {
+
+            var endLinkedNode = start.Linked.FirstOrDefault(n => n.Id == end.Id);
+            if (endLinkedNode != null) {
                 return new List<Node> {end};
             }
 
@@ -196,14 +201,14 @@ namespace ClassicUO.NavigationNew.AkatoshMesh.New
             var open = new MinHeap();
             open.Push(head);
 
-            var costSoFar = new Dictionary<int, double>();
+            var costSoFar = new Dictionary<long, double>();
             int count = 0;
 
             while (open.HasNext() && count <= maxSearch) {
                 ++count;
 
                 var current = open.Pop();
-                if (current.PositionHash == end.PositionHash) {
+                if (current.Id == end.Id) {
                     var listSuccesful = new List<Node>();
                     var currentSuc = current;
                     listSuccesful.Add(currentSuc.Node);
@@ -259,21 +264,21 @@ namespace ClassicUO.NavigationNew.AkatoshMesh.New
             return new List<Node>();
         }
 
-        private static HashSet<int> SearchedIds = new HashSet<int>();
+        private static HashSet<long> SearchedIds = new HashSet<long>();
 
-        private static void StepNext(MinHeap open, Dictionary<int, double> costSoFar, MinHeapNode current, Node end) {
+        private static void StepNext(MinHeap open, Dictionary<long, double> costSoFar, MinHeapNode current, Node end) {
             var initialCost = 0.0;
-            costSoFar.TryGetValue(current.PositionHash, out initialCost);
+            costSoFar.TryGetValue(current.Id, out initialCost);
 
             var bestCost = 999999.0;
 
-            Navigation. LoadGridForPoint(current.Node.Position, true);
-            foreach (var nodeLinkedFile in current.Node.LinkedFiles) {
-                Navigation.LoadGridForFilePoint(nodeLinkedFile);
-            }
+            Navigation. LoadGridForPoint(current.Node.Position, current.Node.MapIndex, true);
+            foreach (var linked in current.Node.Linked) {
+                Navigation.LoadGridForFilePoint(linked.FilePoint, linked.MapIndex);
 
-            foreach (var linkedId in current.Node.LinkedIds) {
-                if (!Navigation.CurrentMesh.NodesById.TryGetValue(linkedId, out var linkedNode)) {
+                var linkedNode = Navigation.CurrentMesh.FindByNodeLink(linked);
+
+                if (linkedNode == null) {
                     continue;
                 }
 
@@ -282,23 +287,19 @@ namespace ClassicUO.NavigationNew.AkatoshMesh.New
                     continue;
                 }
 
-                if (SearchedIds.Contains(linkedId)) {
+                if (SearchedIds.Contains(linked.Id)) {
                     // Navigation.MapGraphic.DrawRectangle(new Pen(Color.FromArgb(255, 80, 0, 200), 0), (int)linkedNode.X, (int)linkedNode.Y, 1, 1);
                     continue;
                 }
 
-                foreach (var nodeLinkedFile in linkedNode.LinkedFiles) {
-                    Navigation.LoadGridForFilePoint(nodeLinkedFile);
-                }
-
-                SearchedIds.Add(linkedId);
+                SearchedIds.Add(linked.Id);
 
                 var cost = current.Node.Location.Distance(linkedNode.Location);
                 if (linkedNode is AkatoshTeleporterNode) {
                     cost += 5.0;
                 }
 
-                var isEndNode = linkedNode.PositionHash == end.PositionHash;
+                var isEndNode = linkedNode.Id == end.Id;
 
                 var newCost = initialCost + (cost * 5);
                 if (newCost > bestCost && !isEndNode) {
@@ -310,7 +311,7 @@ namespace ClassicUO.NavigationNew.AkatoshMesh.New
                 }
 
                 bestCost = newCost;
-                costSoFar[linkedNode.PositionHash] = newCost;
+                costSoFar[linkedNode.Id] = newCost;
 
                 var expectedCost = newCost + ManhattanDistance(linkedNode.Location, end.Location);
                 open.Push(new MinHeapNode(linkedNode, current, expectedCost));

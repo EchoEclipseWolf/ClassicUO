@@ -12,6 +12,7 @@ namespace RoyT.AStar
         public MinHeapNode(Node node, MinHeapNode previous, double expectedCost)
         {
             this.Node = node;
+            Id = node.Id;
             this.Previous = previous;
             this.ExpectedCost = expectedCost;            
         }
@@ -19,8 +20,7 @@ namespace RoyT.AStar
         public Node Node { get; }
         public MinHeapNode Previous { get; }
         public Point3D Position => Node.Location;
-        public HashSet<int> LinkedNodes => Node.LinkedIds;
-        public int PositionHash => Node.PositionHash;
+        public long Id { get; set; }
         public double ExpectedCost { get; set; }                
         public MinHeapNode Next { get; set; }
     }

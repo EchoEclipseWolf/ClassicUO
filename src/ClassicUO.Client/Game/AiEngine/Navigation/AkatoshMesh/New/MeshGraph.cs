@@ -26,7 +26,7 @@ namespace AkatoshQuester.Helpers.Cartography
     public class MeshGraph
     {
         public int CurrentMeshId { get; set; }
-        public ConcurrentDictionary<int, Node> NodesById = new ConcurrentDictionary<int, Node>();
+        public ConcurrentDictionary<long, MeshGrid> Grids = new ();
 
 
         public MeshGraph(BinaryReader reader) {
@@ -44,42 +44,72 @@ namespace AkatoshQuester.Helpers.Cartography
 
         public void Clear()
         {
-            NodesById.Clear();
+            //NodesById.Clear();
+        }
+
+        public Node FindByNodeLink(NodeLink nodeLink) {
+            var grid = GetGridByFilePoint(nodeLink.FilePoint, nodeLink.MapIndex);
+
+            if (grid != null) {
+                if (grid.Points.TryGetValue(nodeLink.XYHash, out var nodes)) {
+                    var node = nodes.FirstOrDefault(n => n.Id == nodeLink.Id);
+                    return node;
+                }
+            }
+
+            return null;
+        }
+
+        public Node FindById(long id) {
+            foreach (var grid in Grids) {
+                foreach (var valuePoint in grid.Value.Points) {
+                    foreach (Node node in valuePoint.Value) {
+                        if(node.Id == id) 
+                            return node;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        public MeshGrid GetGridByPosition(Point3D point, int mapIndex) {
+            var filePoint = Navigation.GetFilePointFromPoint(point);
+
+            return GetGridByFilePoint(filePoint, mapIndex);
+        }
+
+        public MeshGrid GetGridByFilePoint(Point2D filePoint, int mapIndex) {
+            var gridHash = MeshGrid.GetHash(filePoint, mapIndex);
+
+            if (Grids.TryGetValue(gridHash, out var grid)) {
+                return grid;
+            }
+
+            var newGrid = new MeshGrid(filePoint, mapIndex);
+            Grids[gridHash] = newGrid;
+            return newGrid;
         }
 
         public bool GridContainsPoint(Point3D point) {
-            Node newNode = new AkatoshGroundNode(point, new Point3D(0, 0, 0));
-            return NodesById.Values.Contains(newNode);
+            return false;
+            //Node newNode = new AkatoshGroundNode(point, new Point3D(0, 0, 0));
+            //return NodesById.Values.Contains(newNode);
         }
 
-        public bool AddNode(Node newNode)
-        {
-            if (newNode == null)
-                return false;
-
-            if (NodesById.Values.Contains(newNode)) {
-                return false;
-            }
-
-            NodesById[newNode.Id] = newNode;
-            CurrentMeshId++;
-
-            return true;
-        }
-
-        public bool AddAndConnect(Node newNode, int searchDistance = 1, bool oneWay = false)
+        public bool AddAndConnect(Node newNode, int mapIndex, int searchDistance = 1, bool oneWay = false)
         {
             if (newNode == null)
                 return false;
 
             var candidates = new HashSet<Node>();
-            List<Node> pointsInRange = NodesWithinRange(newNode.Location, searchDistance);
+            List<Node> pointsInRange = NodesWithinRange(newNode.Location, mapIndex, searchDistance);
 
             if (searchDistance == 0 && pointsInRange.Count == 1) {
                 newNode.Id = pointsInRange[0].Id;
             } else {
                 if (searchDistance == 0 && pointsInRange.Count == 0) {
-                    pointsInRange = NodesWithinRange(newNode.Location, 1);
+                    pointsInRange = NodesWithinRange(newNode.Location, mapIndex, 1);
                 }
 
                 foreach (Node node in pointsInRange) {
@@ -99,7 +129,7 @@ namespace AkatoshQuester.Helpers.Cartography
 
             if (!Equals(newNode.EndLocation, Point3D.Empty)) {
                 candidates.Clear();
-                var pointsInRangeEnd = NodesWithinRange(newNode.EndLocation, searchDistance);
+                var pointsInRangeEnd = NodesWithinRange(newNode.EndLocation, mapIndex, searchDistance);
 
                 foreach (Node node in pointsInRangeEnd) {
                     if (!candidates.Contains(node) && (searchDistance == 0 || !node.Position.Equals(newNode.Location))) {
@@ -113,20 +143,16 @@ namespace AkatoshQuester.Helpers.Cartography
                 }
             }
 
-            NodesById[newNode.Id] = newNode;
             CurrentMeshId++;
-
-            pointsInRange = NodesWithinRange(newNode.Location, searchDistance);
-
             return true;
         }
 
-        public bool AddAndConnect(Point3D newPoint)
+        public bool AddAndConnect(Point3D newPoint, int mapIndex)
         {
             if (Equals(newPoint, Point3D.Empty))
                 return false;
 
-            var currentNode = Navigation.GetNode(newPoint);
+            var currentNode = Navigation.GetNode(newPoint, mapIndex);
 
             if (currentNode != null || GridContainsPoint(newPoint)) {
 
@@ -134,7 +160,7 @@ namespace AkatoshQuester.Helpers.Cartography
                     var candidatesExisting = new HashSet<Node>();
 
                     List<Node> pointsInRangeExisting =
-                        NodesWithinRange(currentNode.Location, Navigation.SearchForNeighboursDistance);
+                        NodesWithinRange(currentNode.Location, mapIndex, Navigation.SearchForNeighboursDistance);
 
                     foreach (Node node in pointsInRangeExisting) {
                         if (!candidatesExisting.Contains(node) && !node.Position.Equals(newPoint)) {
@@ -151,17 +177,17 @@ namespace AkatoshQuester.Helpers.Cartography
                 return false;
             }
 
-            Node newNode = new AkatoshGroundNode(newPoint, new Point3D(0, 0, 0));
+            Node newNode = new AkatoshGroundNode(newPoint, mapIndex, new Point3D(0, 0, 0), 0);
             
-
-            newNode.Id = CurrentMeshId;
-
-            NodesById[newNode.Id] = newNode;
+            newNode.Id = (int) Node.GetNodeHash(newPoint);
+            var meshGrid = GetGridByPosition(newPoint, mapIndex);
+            meshGrid.AddNode(newNode);
+            //NodesById[newNode.Id] = newNode;
             CurrentMeshId++;
 
             var candidates = new HashSet<Node>();
 
-            List<Node> pointsInRange = NodesWithinRange(newNode.Location, Navigation.SearchForNeighboursDistance);
+            List<Node> pointsInRange = NodesWithinRange(newNode.Location, mapIndex, Navigation.SearchForNeighboursDistance);
 
             foreach (Node node in pointsInRange) {
                 if (!candidates.Contains(node) && !node.Position.Equals(newPoint)) {
@@ -180,20 +206,14 @@ namespace AkatoshQuester.Helpers.Cartography
 
             Console.WriteLine($"[Navigation]: Saved Point: Linked {candidates.Count}.");
 
+            var testNode = Navigation.CurrentMesh.FindById(newNode.Id);
+
             return true;
         }
 
-        public Node AddNode(Point3D point)
-        {
-            Node newNode = new AkatoshGroundNode(point, new Point3D(0, 0, 0));
-
-            return AddNode(newNode) ? newNode : null;
-        }
-
-
         public Node ClosestNode(double PtX, double PtY, double PtZ, out double Distance, bool IgnorePassableProperty)
         {
-            Node NodeMin = null;
+            /*Node NodeMin = null;
             double DistanceMin = -1;
             var P = new Point3D(PtX, PtY, PtZ);
             foreach (Node N in NodesById.Values)
@@ -207,12 +227,14 @@ namespace AkatoshQuester.Helpers.Cartography
                 }
             }
             Distance = DistanceMin;
-            return NodeMin;
+            return NodeMin;*/
+            Distance = 0;
+            return null;
         }
 
         public Node ClosestNode(Vector3 point, bool ignorePassableProperty)
         {
-            Node nodeMin = null;
+            /*Node nodeMin = null;
             double distanceMin = -1;
             var p = new Point3D(point.X, point.Y, point.Z);
             foreach (Node n in NodesById.Values)
@@ -226,32 +248,37 @@ namespace AkatoshQuester.Helpers.Cartography
                 }
             }
 
-            return nodeMin;
+            return nodeMin;*/
+            return null;
         }
 
-        private List<Node> NodesAroundNode(Point3D point)
+        private List<Node> NodesAroundNode(Point3D point, int mapIndex)
         {
             var list = new List<Node>();
-            list.AddRange(Navigation.GetNodes(point.X, point.Y));
-            list.AddRange(Navigation.GetNodes(point.X - 1, point.Y));
-            list.AddRange(Navigation.GetNodes(point.X + 1, point.Y));
-            list.AddRange(Navigation.GetNodes(point.X, point.Y - 1));
-            list.AddRange(Navigation.GetNodes(point.X, point.Y + 1));
-            list.AddRange(Navigation.GetNodes(point.X - 1, point.Y - 1));
-            list.AddRange(Navigation.GetNodes(point.X - 1, point.Y + 1));
-            list.AddRange(Navigation.GetNodes(point.X + 1, point.Y - 1));
-            list.AddRange(Navigation.GetNodes(point.X + 1, point.Y + 1));
+            list.Add(Navigation.GetNode(new Point3D(point.X, point.Y, point.Z), mapIndex));
+            list.Add(Navigation.GetNode(new Point3D(point.X - 1, point.Y, point.Z), mapIndex));
+            list.Add(Navigation.GetNode(new Point3D(point.X + 1, point.Y, point.Z), mapIndex));
+            list.Add(Navigation.GetNode(new Point3D(point.X, point.Y - 1, point.Z), mapIndex));
+            list.Add(Navigation.GetNode(new Point3D(point.X, point.Y + 1, point.Z), mapIndex));
+            list.Add(Navigation.GetNode(new Point3D(point.X - 1, point.Y - 1, point.Z), mapIndex));
+            list.Add(Navigation.GetNode(new Point3D(point.X - 1, point.Y + 1, point.Z), mapIndex));
+            list.Add(Navigation.GetNode(new Point3D(point.X + 1, point.Y - 1, point.Z), mapIndex));
+            list.Add(Navigation.GetNode(new Point3D(point.X + 1, point.Y + 1, point.Z), mapIndex));
 
             return list;
         }
 
-        public List<Node> NodesWithinRange(Point3D point, double distance)
+        public List<Node> NodesWithinRange(Point3D point, int mapIndex, double distance)
         {
             Node nodeMin = null;
             var list = new List<Node>();
 
-            foreach (var checkNode in NodesAroundNode(point))
+            foreach (var checkNode in NodesAroundNode(point, mapIndex))
             {
+                if (checkNode == null) {
+                    continue;
+                }
+
                 int distanceTemp = (int)checkNode.Location.Distance2D(point);
                 int heightDifference = (int)Math.Abs(point.Z - checkNode.Z);
 
@@ -262,11 +289,6 @@ namespace AkatoshQuester.Helpers.Cartography
             }
 
             return list;
-        }
-
-        public List<Node> GetPointsWithinDistance(Point3D from, float dist)
-        {
-            return NodesById.Values.Where(ntf => ntf.Location.Distance(from) < dist).ToList();
         }
     }
 }

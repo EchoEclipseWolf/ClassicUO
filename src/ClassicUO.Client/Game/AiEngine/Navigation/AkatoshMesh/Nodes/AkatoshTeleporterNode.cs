@@ -19,26 +19,26 @@ namespace AkatoshQuester.Helpers.Nodes
             Type = AkatoshNodeType.Teleport;
         }
 
-        public AkatoshTeleporterNode(Point3D location, Point3D endLocation)
-            : base(location, endLocation) {
+        public AkatoshTeleporterNode(Point3D location, int mapIndex, Point3D endLocation, int endMapIndex)
+            : base(location, mapIndex, endLocation, endMapIndex) {
             Type = AkatoshNodeType.Teleport;
         }
 
-        public AkatoshTeleporterNode(Point3D location, Point3D endLocation, MeshGraph currentMesh)
-            : this(location, endLocation) {
+        public AkatoshTeleporterNode(Point3D location, int mapIndex, Point3D endLocation, int endMapIndex, MeshGraph currentMesh)
+            : this(location, mapIndex, endLocation, endMapIndex) {
 
-            Navigation.LoadGridForPoint(location);
+            Navigation.LoadGridForPoint(location, mapIndex);
             if (!endLocation.Equals(Point3D.Empty)) {
-                Navigation.LoadGridForPoint(endLocation);
+                Navigation.LoadGridForPoint(endLocation, endMapIndex);
             }
 
-            var currentNode = Navigation.GetNode(location);
+            var currentNode = Navigation.GetNode(location, mapIndex);
             if (currentNode != null && currentNode.Type == AkatoshNodeType.Teleport) {
                 return;
             }
 
             Id = currentMesh.CurrentMeshId;
-            currentMesh.AddAndConnect(this, 0, true);
+            currentMesh.AddAndConnect(this, mapIndex, 0, true);
             Navigation.NavigationNeedsSaving = true;
         }
 

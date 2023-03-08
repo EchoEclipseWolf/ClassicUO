@@ -71,7 +71,7 @@ namespace AkatoshQuester.Helpers.Cartography
 		/// <exception cref="ArgumentNullException">StartNode cannot be set to null.</exception>
 		/// <exception cref="ArgumentException">StartNode cannot be set to EndNode.</exception>
 
-        public int StartNodeId { get; set; }
+        public long StartNodeId { get; set; }
         public Node StartNode
 		{
 			set
@@ -99,7 +99,7 @@ namespace AkatoshQuester.Helpers.Cartography
 		/// </summary>
 		/// <exception cref="ArgumentNullException">EndNode cannot be set to null.</exception>
 		/// <exception cref="ArgumentException">EndNode cannot be set to StartNode.</exception>
-        public int EndNodeId { get; set; }
+        public long EndNodeId { get; set; }
         public Node EndNode
 		{
 			set
@@ -235,7 +235,7 @@ namespace AkatoshQuester.Helpers.Cartography
             stream.Write(newline, 0, newline.Length);
         }
 
-        public virtual void LoadFromElement(XElement element, Dictionary<int, Node>[] nodeLists)
+        public virtual void LoadFromElement(XElement element, Dictionary<long, Node>[] nodeLists)
         {
             XAttribute xmlStartNodeId = element.Attributes().FirstOrDefault(attribute => "SId" == attribute.Name.ToString());
             int startNodeId = 0;
@@ -266,10 +266,10 @@ namespace AkatoshQuester.Helpers.Cartography
 
             Passable = passable;
 
-            int listId = StartNodeId / 100;
+            long listId = StartNodeId / 100;
             StartNode = nodeLists[listId][StartNodeId];
 
-            int endListId = EndNodeId / 100;
+            long endListId = EndNodeId / 100;
             EndNode = nodeLists[endListId][EndNodeId];
 
            // StartNode = nodes[StartNodeId];

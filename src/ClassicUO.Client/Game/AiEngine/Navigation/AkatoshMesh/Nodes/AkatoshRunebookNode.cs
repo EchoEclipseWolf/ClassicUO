@@ -22,8 +22,8 @@ namespace AkatoshQuester.Helpers.Nodes
             Type = AkatoshNodeType.Runebook;
         }
 
-        public AkatoshRunebookNode(Point3D location, Point3D endLocation) 
-            : base(location, endLocation, AkatoshNodeType.Ground)
+        public AkatoshRunebookNode(Point3D location, int mapIndex, Point3D endLocation, int endMapIndex) 
+            : base(location, mapIndex, endLocation, endMapIndex, AkatoshNodeType.Ground)
         {
             
         }

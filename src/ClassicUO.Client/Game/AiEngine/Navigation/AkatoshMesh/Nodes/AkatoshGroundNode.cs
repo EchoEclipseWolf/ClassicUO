@@ -26,8 +26,8 @@ namespace AkatoshQuester.Helpers.Nodes
             Type = AkatoshNodeType.Ground;
         }
 
-        public AkatoshGroundNode(Point3D location, Point3D endLocation) 
-            : base(location, endLocation, AkatoshNodeType.Ground)
+        public AkatoshGroundNode(Point3D location, int mapIndex, Point3D endLocation, int endMapIndex) 
+            : base(location, mapIndex, endLocation, endMapIndex, AkatoshNodeType.Ground)
         {
             
         }

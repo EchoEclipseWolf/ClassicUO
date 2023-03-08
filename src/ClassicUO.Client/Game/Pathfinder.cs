@@ -1008,6 +1008,63 @@ namespace ClassicUO.Game
             return _pathSize != 0;
         }
 
+        public static PathNode[] CanWalkTo(int x, int y, int z, int distance, out int size)
+        {
+            if (World.Player == null || World.Player.IsParalyzed) {
+                size = 0;
+                return Array.Empty<PathNode>();
+            }
+
+            for (int i = 0; i < PATHFINDER_MAX_NODES; i++)
+            {
+                if (_openList[i] == null)
+                {
+                    _openList[i] = new PathNode();
+                }
+
+                _openList[i].Reset();
+
+                if (_closedList[i] == null)
+                {
+                    _closedList[i] = new PathNode();
+                }
+
+                _closedList[i].Reset();
+            }
+
+
+            int playerX = World.Player.X;
+            int playerY = World.Player.Y;
+
+            _startPoint.X = playerX;
+            _startPoint.Y = playerY;
+            _endPoint.X = x;
+            _endPoint.Y = y;
+            _goalNode = 0;
+            _goalFound = false;
+            _activeOpenNodes = 0;
+            _activeCloseNodes = 0;
+            _pathfindDistance = distance;
+            _pathSize = 0;
+            PathindingCanBeCancelled = true;
+            StopAutoWalk();
+            AutoWalking = true;
+
+            if (FindPath(PATHFINDER_MAX_NODES))
+            {
+                _pointIndex = 1;
+                AutoWalking = false;
+                //ProcessAutoWalk();
+            }
+            else
+            {
+                AutoWalking = false;
+            }
+
+            size = _pathSize;
+            return _path;
+        }
+
         public static void ProcessAutoWalk()
         {
             if (AutoWalking && World.InGame && World.Player.Walker.StepsCount < Constants.MAX_STEP_COUNT && World.Player.Walker.LastStepRequestTime <= Time.Ticks)
@@ -1093,7 +1150,7 @@ namespace ClassicUO.Game
             }
         }
 
-        private class PathNode
+        public class PathNode
         {
             public int X { get; set; }
 

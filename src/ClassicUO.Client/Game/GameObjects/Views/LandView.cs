@@ -39,6 +39,8 @@ using System;
 using ClassicUO.AiEngine;
 using AkatoshQuester.Helpers.LightGeometry;
 using System.Drawing;
+using System.Linq;
+using AkatoshQuester.Helpers.Cartography;
 
 namespace ClassicUO.Game.GameObjects
 {
@@ -56,14 +58,27 @@ namespace ClassicUO.Game.GameObjects
             ushort hue = Hue;
 
             var foundNavPoint = false;
+            var isPathPoint = false;
 
-            if (Navigation.CurrentMesh != null) {
+            if (AiEngine.AiEngine.Instance.Navigation && Navigation.CurrentMesh != null && !Navigation.IsLoading && !Navigation.IsLoadingFilePoint) {
                 var point = new Point3D(Position.X, Position.Y, Position.Z);
-                Navigation.LoadGridForPoint(point);
-                var meshPoints = Navigation.GetNode(point);
+                var meshPoints = Navigation.GetNode(point, World.MapIndex);
 
                 if (meshPoints != null) {
                     foundNavPoint = true;
+                }
+
+                if (Navigation.Path.Count > 0) {
+                    try {
+                        var pathNode = Navigation.Path.FirstOrDefault(n => n != null && (int)n.Position.X == (int)point.X && (int)n.Position.Y == (int)point.Y);
+
+                        if (pathNode != null) {
+                            isPathPoint = true;
+                        }
+                    }
+                    catch (Exception e) {
+                        Console.WriteLine(e);
+                    }
                 }
             }
 
@@ -79,8 +94,13 @@ namespace ClassicUO.Game.GameObjects
             {
                 hue = Constants.DEAD_RANGE_COLOR;
             }
-            else if (foundNavPoint) {
+
+            if (foundNavPoint) {
                 hue = Constants.OUT_RANGE_COLOR;
+            }
+
+            if (isPathPoint) {
+                hue = Constants.HIGHLIGHT_CURRENT_OBJECT_HUE;
             }
 
             Vector3 hueVec;

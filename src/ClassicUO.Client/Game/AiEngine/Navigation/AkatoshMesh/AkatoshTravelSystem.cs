@@ -86,8 +86,8 @@ namespace ClassicUO.NavigationTravel.AkatoshMesh {
             BuildMoongateList();
         }
 
-        public async Task<double> GetWalkDistance(Point3D start, Point3D end, int maxSearch = 500000) {
-            var path = await Navigation.GetPath(start, end, maxSearch);
+        public async Task<double> GetWalkDistance(Point3D start, int startMapIndex, Point3D end, int endMapIndex, int maxSearch = 500000) {
+            var path = await Navigation.GetPath(start, startMapIndex, end, endMapIndex, maxSearch);
             if (path.Count == 0) {
                 return 9999999;
             }
@@ -151,7 +151,7 @@ namespace ClassicUO.NavigationTravel.AkatoshMesh {
             double bestRuneDistance = 9999999;
             PublicRunebookPoint bestRune = null;
             foreach (var rune in runes) {
-                var runeWalkDistance = await GetWalkDistance(rune.EndPoint, endPoint, maxPathDistance);
+                var runeWalkDistance = await GetWalkDistance(rune.EndPoint, World.MapIndex, endPoint, World.MapIndex, maxPathDistance);
                 if (runeWalkDistance < bestRuneDistance) {
                     bestRuneDistance = runeWalkDistance;
                     bestRune = rune;
@@ -172,10 +172,10 @@ namespace ClassicUO.NavigationTravel.AkatoshMesh {
                 if (useNewHavenMoongate) {
                     totalMoongateDistance = 5.0;
                 } else {
-                    totalMoongateDistance += await GetWalkDistance(World.Player.Position.ToPoint3D(), startMoongate.EndPoint, maxPathDistance);
+                    totalMoongateDistance += await GetWalkDistance(World.Player.Position.ToPoint3D(), World.MapIndex, startMoongate.EndPoint, World.MapIndex, maxPathDistance);
                 }
                     
-                totalMoongateDistance += await GetWalkDistance(endMoongate.EndPoint, endPoint, maxPathDistance);// endMoongate.Distance(endPoint);
+                totalMoongateDistance += await GetWalkDistance(endMoongate.EndPoint, World.MapIndex, endPoint, World.MapIndex, maxPathDistance);// endMoongate.Distance(endPoint);
                 totalMoongateDistance += 5;
                 dict[TravelSystemMode.PublicMoongate] = totalMoongateDistance;
             }
@@ -185,7 +185,7 @@ namespace ClassicUO.NavigationTravel.AkatoshMesh {
 
             if (endMapIndex == World.MapIndex)
             {
-                var totalWalkDistance = await GetWalkDistance(World.Player.Position.ToPoint3D(), endPoint, maxPathDistance);
+                var totalWalkDistance = await GetWalkDistance(World.Player.Position.ToPoint3D(), World.MapIndex, endPoint, World.MapIndex, maxPathDistance);
                 dict[TravelSystemMode.Walk] = totalWalkDistance;
             }
 
@@ -225,9 +225,9 @@ namespace ClassicUO.NavigationTravel.AkatoshMesh {
 
 
             foreach (var publicMoongatePoint in moongates) {
-                Navigation.LoadGridForPoint(point);
-                Navigation.LoadGridForPoint(publicMoongatePoint.EndPoint);
-                var totalMoongateDistance = await GetWalkDistance(point, publicMoongatePoint.EndPoint, maxPathDistance);
+                Navigation.LoadGridForPoint(point, mapIndex);
+                Navigation.LoadGridForPoint(publicMoongatePoint.EndPoint, mapIndex);
+                var totalMoongateDistance = await GetWalkDistance(point, mapIndex, publicMoongatePoint.EndPoint, mapIndex, maxPathDistance);
                 if (totalMoongateDistance < 10 || totalMoongateDistance < 9999999) {
                     return publicMoongatePoint;
                 }
