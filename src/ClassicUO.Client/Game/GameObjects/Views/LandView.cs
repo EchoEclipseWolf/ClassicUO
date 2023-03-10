@@ -41,6 +41,8 @@ using AkatoshQuester.Helpers.LightGeometry;
 using System.Drawing;
 using System.Linq;
 using AkatoshQuester.Helpers.Cartography;
+using ClassicUO.Game.AiEngine;
+using ClassicUO.Game.AiEngine.Memory;
 
 namespace ClassicUO.Game.GameObjects
 {
@@ -60,7 +62,7 @@ namespace ClassicUO.Game.GameObjects
             var foundNavPoint = false;
             var isPathPoint = false;
 
-            if (AiEngine.AiEngine.Instance.Navigation && Navigation.CurrentMesh != null && !Navigation.IsLoading && !Navigation.IsLoadingFilePoint) {
+            if ((AiSettings.Instance.NavigationTesting || AiSettings.Instance.NavigationRecording) && Navigation.CurrentMesh != null && !Navigation.IsLoading) {
                 var point = new Point3D(Position.X, Position.Y, Position.Z);
                 var meshPoints = Navigation.GetNode(point, World.MapIndex);
 
@@ -80,6 +82,9 @@ namespace ClassicUO.Game.GameObjects
                         Console.WriteLine(e);
                     }
                 }
+            }
+            else {
+                int bob = 1;
             }
 
             if (ProfileManager.CurrentProfile.HighlightGameObjects && SelectedObject.Object == this)

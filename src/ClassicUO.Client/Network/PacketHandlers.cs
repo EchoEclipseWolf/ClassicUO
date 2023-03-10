@@ -45,6 +45,7 @@ using ClassicUO.Game.UI.Controls;
 using ClassicUO.Game.UI.Gumps;
 using ClassicUO.IO;
 using ClassicUO.Assets;
+using ClassicUO.Game.AiEngine;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Collections;
@@ -6244,6 +6245,8 @@ namespace ClassicUO.Network
                     {
                         World.Player.TryOpenCorpses();
                     }
+
+                    AiCore.Instance.UpdateGroundItem(item);
                 }
             }
         }

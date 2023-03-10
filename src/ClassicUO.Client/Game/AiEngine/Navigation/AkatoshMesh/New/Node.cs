@@ -302,14 +302,18 @@ namespace AkatoshQuester.Helpers.Cartography
 	        return Position.ToString();
 	    }
 
-		/// <summary>
-		/// Object.Equals override.
-		/// Tells if two nodes are equal by comparing positions.
-		/// </summary>
-		/// <exception cref="ArgumentException">A Node cannot be compared with another type.</exception>
-		/// <param name="O">The node to compare with.</param>
-		/// <returns>'true' if both nodes are equal.</returns>
-		public override bool Equals(object O)
+        public double Distance => Position.Distance(new Point3D(World.Player.Position.X, World.Player.Position.Y, World.Player.Position.Z));
+
+        public double Distance2D => Position.Distance2D(new Point3D(World.Player.Position.X, World.Player.Position.Y, World.Player.Position.Z));
+
+        /// <summary>
+        /// Object.Equals override.
+        /// Tells if two nodes are equal by comparing positions.
+        /// </summary>
+        /// <exception cref="ArgumentException">A Node cannot be compared with another type.</exception>
+        /// <param name="O">The node to compare with.</param>
+        /// <returns>'true' if both nodes are equal.</returns>
+        public override bool Equals(object O)
 		{
             try
 		    {

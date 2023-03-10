@@ -42,6 +42,7 @@ using ClassicUO.Assets;
 using ClassicUO.Network;
 using ClassicUO.Utility;
 using ClassicUO.Utility.Logging;
+using ClassicUO.Game.AiEngine;
 
 namespace ClassicUO.Game.GameObjects
 {
@@ -62,11 +63,11 @@ namespace ClassicUO.Game.GameObjects
             Task.Run
             (
                 async () => {
-                    if (AiEngine.AiEngine.Instance == null) {
-                        new AiEngine.AiEngine();
+                    if (AiCore.Instance == null) {
+                        new AiCore();
                     }
 
-                    await AiEngine.AiEngine.Instance.Loop();
+                    await AiCore.Instance.Loop();
                 }
             );
         }

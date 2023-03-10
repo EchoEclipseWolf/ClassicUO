@@ -2,6 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
+    <Configurations>Debug;Release;DebugLive</Configurations>
   </PropertyGroup>
 
   <ItemGroup>

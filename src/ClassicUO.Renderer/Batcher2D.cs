@@ -1257,9 +1257,16 @@ namespace ClassicUO.Renderer
                 if (tex != curTexture)
                 {
                     ++TextureSwitches;
-                    InternalDraw(curTexture, baseOff + offset, i - offset);
-                    curTexture = tex;
-                    offset = i;
+
+                    try {
+                        InternalDraw(curTexture, baseOff + offset, i - offset);
+                        curTexture = tex;
+                        offset = i;
+                    }
+                    catch (Exception e) {
+                        Console.WriteLine(e);
+
+                    }
                 }
             }
 

@@ -5,6 +5,8 @@
     <ApplicationIcon>cuoicon.ico</ApplicationIcon>
     <AssemblyName>ClassicUO</AssemblyName>
     <RootNamespace>ClassicUO</RootNamespace>
+    <Configurations>Debug;Release;DebugLive</Configurations>
+    <BaseOutputPath>C:\ImmortalClassicUO</BaseOutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IS_DEV_BUILD)' == 'true'">
@@ -12,6 +14,14 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+    <Optimize>False</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugLive|x64'">
+    <Optimize>False</Optimize>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Optimize>False</Optimize>
   </PropertyGroup>
 

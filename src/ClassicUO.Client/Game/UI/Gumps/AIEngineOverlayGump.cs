@@ -31,9 +31,15 @@
 #endregion
 
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using System.Xml;
+using AkatoshQuester.Helpers.LightGeometry;
+using ClassicUO.AiEngine;
 using ClassicUO.Configuration;
+using ClassicUO.Game.AiEngine;
+using ClassicUO.Game.AiEngine.Memory;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
@@ -45,18 +51,52 @@ using Microsoft.Xna.Framework;
 
 namespace ClassicUO.Game.UI.Gumps
 {
-    internal class AIEngineOverlayGump : Gump
+    [Flags]
+    internal enum AiEngineButtons
     {
-        private const string DEBUG_STRING_SMALL_NO_ZOOM = "AI Engine";
+        None = 1,
+        SETTESTING = 2,
+        PLAYSCRIPT = 3,
+        STOPSCRIPT = 4,
+    }
+
+    internal sealed class AIEngineOverlayGump : Gump
+    {
+        private const string HEADER_LABEL_TEXT = "AI Engine";
+        private const string SETTESTING_LABEL_TEXT = "Set Testing Location";
         
-        private static Point _last_position = new Point(-1, -1);
+        private static Point _lastPosition = new Point(-1, -1);
 
         private uint _timeToUpdate;
         private readonly AlphaBlendControl _alphaBlendControl;
-        private Checkbox _enableSelfBandageHealingCheckbox;
-        private Checkbox _enableTamingTrainerCheckbox;
-        private Checkbox _enableNavigationCheckbox;
+        private readonly Checkbox _enableSelfBandageHealingCheckbox;
+        private readonly Checkbox _enableRecordDatabaseCheckbox;
+        private readonly Checkbox _enableNavigationRecordingCheckbox;
+        private readonly Checkbox _enableNavigationCheckbox;
+        private readonly Checkbox _enableNavigationMovementCheckbox;
+        private readonly Combobox _scriptComboBox;
+        private readonly Button _playPauseButton;
+        private readonly Button _setTestingButton;
         private string _cacheText = string.Empty;
+        private readonly Label _setTestingLabel;
+
+        private Combobox AddCombobox
+        (
+            ScrollArea area,
+            string[] values,
+            int currentIndex,
+            int x,
+            int y,
+            int width
+        )
+        {
+            Combobox combobox = new Combobox(x, y, width, values)
+            {
+                SelectedIndex = currentIndex
+            };
+
+            return combobox;
+        }
 
         public AIEngineOverlayGump(int x, int y) : base(0, 0)
         {
@@ -67,10 +107,17 @@ namespace ClassicUO.Game.UI.Gumps
             AcceptKeyboardInput = false;
             IsMinimized = true;
 
-            Width = 100;
+            Width = 300;
             Height = 50;
-            X = _last_position.X <= 0 ? x : _last_position.X;
-            Y = _last_position.Y <= 0 ? y : _last_position.Y;
+            X = _lastPosition.X <= 0 ? x : _lastPosition.X;
+            Y = _lastPosition.Y <= 0 ? y : _lastPosition.Y;
+
+            const int SPACING = 35;
+            int currentY = 40;
+
+            ushort textColor = 0xFFFF;
+
+            AiSettings.Load();
 
             Add
             (
@@ -79,6 +126,44 @@ namespace ClassicUO.Game.UI.Gumps
                     Width = Width, Height = Height
                 }
             );
+
+            Add
+            (
+                _enableRecordDatabaseCheckbox = new Checkbox
+                (
+                    0x00D2,
+                    0x00D3,
+                    "Record Database",
+                    255,
+                    1153
+                )
+                {
+                    IsChecked = AiSettings.Instance.RecordDatabase,
+                    X = 2,
+                    Y = currentY
+                }
+            );
+
+            currentY += SPACING;
+
+            Add
+            (
+                _enableNavigationRecordingCheckbox = new Checkbox
+                (
+                    0x00D2,
+                    0x00D3,
+                    "Navigation Recording",
+                    255,
+                    1153
+                )
+                {
+                    IsChecked = AiSettings.Instance.NavigationRecording,
+                    X = 2,
+                    Y = currentY
+                }
+            );
+
+            currentY += SPACING;
 
             Add
             (
@@ -91,11 +176,53 @@ namespace ClassicUO.Game.UI.Gumps
                     1153
                 )
                 {
-                    IsChecked = AiEngine.AiEngine.Instance.Navigation,
+                    IsChecked = AiSettings.Instance.NavigationTesting,
                     X = 2,
-                    Y = 40
+                    Y = currentY
                 }
             );
+
+            currentY += SPACING;
+
+            Add
+            (
+                _setTestingButton = new Button((int)AiEngineButtons.SETTESTING, 0x0481, 0x0483, 0x0482)
+                {
+                    X = 2,
+                    Y = currentY,
+                    ButtonAction = ButtonAction.Activate
+                }
+            );
+
+            _setTestingLabel = new Label($"{SETTESTING_LABEL_TEXT}  X: {AiSettings.Instance.TestingNavigationPoint.X}  Y: {AiSettings.Instance.TestingNavigationPoint.Y}  Z: {AiSettings.Instance.TestingNavigationPoint.Z}  MapIndex: {AiSettings.Instance.TestingNavigationMapIndex}", true, textColor, font: (byte)1)
+            {
+                X = 40,
+                Y = currentY
+            };
+
+            Add(_setTestingLabel);
+
+            currentY += SPACING;
+
+            Add
+            (
+                _enableNavigationMovementCheckbox = new Checkbox
+                (
+                    0x00D2,
+                    0x00D3,
+                    "Navigation Movement",
+                    255,
+                    1153
+                )
+                {
+                    IsChecked = AiSettings.Instance.NavigationMovement,
+                    X = 2,
+                    Y = currentY
+                }
+            );
+
+
+            currentY += SPACING;
 
             Add
             (
@@ -108,29 +235,31 @@ namespace ClassicUO.Game.UI.Gumps
                     1153
                 )
                 {
-                    IsChecked = AiEngine.AiEngine.Instance.SelfBandageHealing,
+                    IsChecked = AiSettings.Instance.SelfBandageHealing,
                     X = 2,
-                    Y = 70
+                    Y = currentY
                 }
             );
+
+            currentY += SPACING;
+
+
+            _scriptComboBox = AddCombobox
+                (null, AiCore.Instance.MainScripts.Keys.ToArray(), 0, 2, currentY, 150);
+            Add(_scriptComboBox);
+
+            _playPauseButton = new Button((int) AiEngineButtons.PLAYSCRIPT, 0x07e5, 0x07e6, 0x07e7) {
+                X = 160,
+                Y = currentY,
+                ButtonAction = ButtonAction.Activate
+            };
 
             Add
             (
-                _enableTamingTrainerCheckbox = new Checkbox
-                (
-                    0x00D2,
-                    0x00D3,
-                    "Taming Training",
-                    255,
-                    1153
-                )
-                {
-                    IsChecked = AiEngine.AiEngine.Instance.TamingTraining,
-                    X = 2,
-                    Y = 160
-                }
+                _playPauseButton
             );
 
+            currentY += SPACING;
             LayerOrder = UILayer.Over;
 
             WantUpdateSize = true;
@@ -162,24 +291,49 @@ namespace ClassicUO.Game.UI.Gumps
 
                 GameScene scene = Client.Game.GetScene<GameScene>();
                 Span<char> span = stackalloc char[256];
-                ValueStringBuilder sb = new ValueStringBuilder(span);
+                ValueStringBuilder sb = new (span);
 
-                sb.Append(string.Format(DEBUG_STRING_SMALL_NO_ZOOM, CUOEnviroment.CurrentRefreshRate));
+                sb.Append(string.Format(HEADER_LABEL_TEXT, CUOEnviroment.CurrentRefreshRate));
                 
 
                 _cacheText = sb.ToString();
 
                 sb.Dispose();
 
-                _alphaBlendControl.Width = IsMinimized ? 85 : 150;
+                _alphaBlendControl.Width = IsMinimized ? 85 : 450;
                 _alphaBlendControl.Height = IsMinimized ? 30 : 500;
-                AiEngine.AiEngine.Instance.SelfBandageHealing = _enableSelfBandageHealingCheckbox.IsChecked;
-                AiEngine.AiEngine.Instance.Navigation = _enableNavigationCheckbox.IsChecked;
-                AiEngine.AiEngine.Instance.TamingTraining = _enableTamingTrainerCheckbox.IsChecked;
+
+                var selectedScriptToRun = AiCore.Instance.MainScripts.Keys.ToList()[_scriptComboBox.SelectedIndex];
+
+                bool shouldSave = AiSettings.Instance.SelfBandageHealing != _enableSelfBandageHealingCheckbox.IsChecked ||
+                                  AiSettings.Instance.NavigationRecording != _enableNavigationRecordingCheckbox.IsChecked ||
+                                  AiSettings.Instance.NavigationMovement != _enableNavigationMovementCheckbox.IsChecked ||
+                                  AiSettings.Instance.NavigationTesting != _enableNavigationCheckbox.IsChecked ||
+                                  AiSettings.Instance.RecordDatabase != _enableRecordDatabaseCheckbox.IsChecked ||
+                                  AiSettings.Instance.ScriptToRun != selectedScriptToRun;
+
+
+                AiSettings.Instance.SelfBandageHealing = _enableSelfBandageHealingCheckbox.IsChecked;
+                AiSettings.Instance.NavigationTesting = _enableNavigationCheckbox.IsChecked;
+                AiSettings.Instance.NavigationRecording = _enableNavigationRecordingCheckbox.IsChecked;
+                AiSettings.Instance.NavigationMovement = _enableNavigationMovementCheckbox.IsChecked;
+                AiSettings.Instance.RecordDatabase = _enableRecordDatabaseCheckbox.IsChecked;
+                AiSettings.Instance.ScriptToRun = selectedScriptToRun;
+
+                if (shouldSave) {
+                    AiSettings.Save();
+                }
 
                 _enableSelfBandageHealingCheckbox.IsVisible = !IsMinimized;
                 _enableNavigationCheckbox.IsVisible = !IsMinimized;
-                _enableTamingTrainerCheckbox.IsVisible = !IsMinimized;
+                _enableNavigationRecordingCheckbox.IsVisible = !IsMinimized;
+                _scriptComboBox.IsVisible = !IsMinimized;
+                _setTestingLabel.IsVisible = !IsMinimized;
+                _playPauseButton.IsVisible = !IsMinimized;
+                _enableNavigationMovementCheckbox.IsVisible = !IsMinimized;
+                _setTestingButton.IsVisible = !IsMinimized;
+                _enableRecordDatabaseCheckbox.IsVisible = !IsMinimized;
+
 
                 WantUpdateSize = true;
             }
@@ -206,6 +360,37 @@ namespace ClassicUO.Game.UI.Gumps
             return true;
         }
 
+        public override void OnButtonClick(int buttonID) {
+            switch (buttonID) {
+                case (int) AiEngineButtons.SETTESTING: {
+                    Navigation.UpdateNavigationTestingLocation();
+
+                    _setTestingLabel.Text =
+                        $"{SETTESTING_LABEL_TEXT}  X: {AiSettings.Instance.TestingNavigationPoint.X}  Y: {AiSettings.Instance.TestingNavigationPoint.Y}  Z: {AiSettings.Instance.TestingNavigationPoint.Z}  MapIndex: {AiSettings.Instance.TestingNavigationMapIndex}";
+
+                    AiSettings.Save();
+                    break;
+                }
+
+                case (int) AiEngineButtons.PLAYSCRIPT: {
+                    AiCore.IsScriptRunning = !AiCore.IsScriptRunning;
+
+                    if (AiCore.IsScriptRunning) {
+                        _playPauseButton.ButtonGraphicNormal = 0x07e8;
+                        _playPauseButton.ButtonGraphicOver = 0x07e9;
+                        _playPauseButton.ButtonGraphicPressed = 0x07ea;
+                    }
+                    else {
+                        _playPauseButton.ButtonGraphicNormal = 0x07e5;
+                        _playPauseButton.ButtonGraphicOver = 0x07e6;
+                        _playPauseButton.ButtonGraphicPressed = 0x07e7;
+                    }
+
+                    break;
+                }
+            }
+        }
+
 
         public override void Save(XmlTextWriter writer)
         {
@@ -225,16 +410,16 @@ namespace ClassicUO.Game.UI.Gumps
         protected override void OnDragEnd(int x, int y)
         {
             base.OnDragEnd(x, y);
-            _last_position.X = ScreenCoordinateX;
-            _last_position.Y = ScreenCoordinateY;
+            _lastPosition.X = ScreenCoordinateX;
+            _lastPosition.Y = ScreenCoordinateY;
         }
 
         protected override void OnMove(int x, int y)
         {
             base.OnMove(x, y);
 
-            _last_position.X = ScreenCoordinateX;
-            _last_position.Y = ScreenCoordinateY;
+            _lastPosition.X = ScreenCoordinateX;
+            _lastPosition.Y = ScreenCoordinateY;
         }
     }
 }

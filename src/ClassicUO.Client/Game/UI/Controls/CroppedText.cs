@@ -38,11 +38,11 @@ namespace ClassicUO.Game.UI.Controls
 {
     internal class CroppedText : Control
     {
-        private readonly RenderedText _gameText;
+        internal RenderedText GameText { get; }
 
         public CroppedText(string text, ushort hue, int maxWidth = 0)
         {
-            _gameText = RenderedText.Create
+            GameText = RenderedText.Create
             (
                 text,
                 hue,
@@ -66,7 +66,7 @@ namespace ClassicUO.Game.UI.Controls
 
         public override bool Draw(UltimaBatcher2D batcher, int x, int y)
         {
-            _gameText.Draw(batcher, x, y);
+            GameText.Draw(batcher, x, y);
 
             return base.Draw(batcher, x, y);
         }
@@ -74,7 +74,7 @@ namespace ClassicUO.Game.UI.Controls
         public override void Dispose()
         {
             base.Dispose();
-            _gameText?.Destroy();
+            GameText?.Destroy();
         }
     }
 }

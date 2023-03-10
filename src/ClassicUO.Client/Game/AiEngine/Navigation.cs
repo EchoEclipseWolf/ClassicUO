@@ -13,6 +13,8 @@ using AkatoshQuester.Helpers.Nodes;
 using ClassicUO.Configuration;
 using ClassicUO.DatabaseUtility;
 using ClassicUO.Game;
+using ClassicUO.Game.AiEngine;
+using ClassicUO.Game.AiEngine.Memory;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.NavigationTravel.AkatoshMesh;
@@ -79,6 +81,13 @@ namespace ClassicUO.AiEngine
         public static void SaveMapGraphic() {
             MapGraphic.Dispose();
             MapBitmap.Save("Rendered.png", ImageFormat.Png);
+        }
+
+        public static void UpdateNavigationTestingLocation() {
+            AiSettings.Instance.TestingNavigationPoint = new Point3D(World.Player.Position.X, World.Player.Position.Y, World.Player.Position.Z);
+            AiSettings.Instance.TestingNavigationMapIndex = World.MapIndex;
+
+            GameActions.Print($"[Navigation]: Updated Testing Location  X: {AiSettings.Instance.TestingNavigationPoint.X}  Y: {AiSettings.Instance.TestingNavigationPoint.Y}  Z: {AiSettings.Instance.TestingNavigationPoint.Z}  MapIndex: {AiSettings.Instance.TestingNavigationMapIndex}");
         }
 
         public static async Task<bool> LoadCurrentMap() {
@@ -399,10 +408,12 @@ namespace ClassicUO.AiEngine
 
         public static async Task<bool> SaveGrid() {
             MapUpdating = true;
-            GameActions.MessageOverhead("Saving current navigation map", World.Player.Serial);
-
+           
+            var didSave = false;
             foreach (var gridValuePair in CurrentMesh.Grids) {
                 if (gridValuePair.Value.NeedsToSave) {
+                    didSave = true;
+                    GameActions.MessageOverhead($"Saving Grid X: {gridValuePair.Value.FilePoint.X}  Y: {gridValuePair.Value.FilePoint.Y}", World.Player.Serial);
                     var tempPath = GetSubSavePath(gridValuePair.Value.FilePoint, MobileCache.MapNameFromIndex(gridValuePair.Value.MapIndex), true);
                     var donePath = GetSubSavePath(gridValuePair.Value.FilePoint, MobileCache.MapNameFromIndex(gridValuePair.Value.MapIndex), false);
 
@@ -412,29 +423,30 @@ namespace ClassicUO.AiEngine
                         }
                     }
 
-                    FileInfo beforeFile = new FileInfo(donePath);
-                    FileInfo afterFile = new FileInfo(tempPath);
-
-                    if (afterFile.Length > beforeFile.Length) {
+                    if (!File.Exists(donePath)) {
                         File.Copy(tempPath, donePath, true);
                         File.Delete(tempPath);
                     }
+                    else {
+                        FileInfo beforeFile = new FileInfo(donePath);
+                        FileInfo afterFile = new FileInfo(tempPath);
 
-                    /*string formattedJson = JsonConvert.SerializeObject
-                    (
-                        gridValuePair.Value, Formatting.Indented, new JsonSerializerSettings {
-                            TypeNameHandling = TypeNameHandling.Objects
+                        if (afterFile.Length >= beforeFile.Length) {
+                            File.Copy(tempPath, donePath, true);
+                            File.Delete(tempPath);
                         }
-                    );
+                    }
 
-                    File.WriteAllText(path, formattedJson);*/
                     gridValuePair.Value.NeedsToSave = false;
                 }
             }
 
             GC.Collect();
 
-            GameActions.MessageOverhead("Finished: saving current navigation map", World.Player.Serial);
+            if (didSave) {
+                GameActions.MessageOverhead("Finished: saving current navigation map", World.Player.Serial);
+            }
+
             NavigationNeedsSaving = false;
             MapUpdating = false;
 
@@ -442,6 +454,10 @@ namespace ClassicUO.AiEngine
         }
 
         internal static async Task<bool> AddWalkableTile(Vector3 point) {
+            if (!AiSettings.Instance.NavigationRecording) {
+                return true;
+            }
+
             var point3d = new Point3D(point.X, point.Y, point.Z);
             LoadGridForPoint(point3d, World.MapIndex);
 
@@ -454,9 +470,13 @@ namespace ClassicUO.AiEngine
             NavigationNeedsSaving = true;
 
             //for (int z = -10; z < 10; z++) {
-            for (int y = -8; y < 8; y++) {
-                for (int x = -8; x < 8; x++) {
-                    var path = ClassicUO.Game.Pathfinder.CanWalkTo
+            for (int y = -16; y < 16; y++) {
+                for (int x = -16; x < 16; x++) {
+                    if (GetNode(new Point3D(point.X + x, point.Y + y, point.Z), World.MapIndex) != null) {
+                        continue;
+                    }
+
+                    var path = Game.Pathfinder.CanWalkTo
                         ((int) (point.X + x), (int) (point.Y + y), (int) (point.Z), 0, out var pathSize);
 
                     if (pathSize > 0) {
@@ -520,14 +540,14 @@ namespace ClassicUO.AiEngine
         }
 
         internal static async Task<bool> NavigateTo(Mobile mob) {
-            return await NavigateTo(mob.Position.ToPoint3D(), World.MapIndex, World.MapIndex, false, false);
+            return await NavigateTo(mob.Position.ToPoint3D(), World.MapIndex, false, false);
         }
 
-        public static async Task<bool> NavigateTo(Point3D point) {
-            return await NavigateTo(point, World.MapIndex, World.MapIndex);
+        public static async Task<bool> NavigateTo(Point3D point, int endMapIndex) {
+            return await NavigateTo(point, endMapIndex, true);
         }
 
-        public static async Task<bool> NavigateTo(Point3D point, int startMapIndex, int endMapIndex, bool useTravelSystem = true, bool saveToCache = true) {
+        public static async Task<bool> NavigateTo(Point3D point, int endMapIndex, bool useTravelSystem = true, bool saveToCache = true) {
             if (IsNavigationBusy) {
                 return true;
             }
@@ -539,11 +559,11 @@ namespace ClassicUO.AiEngine
            
 
             if (Path.Count == 0 || _previousX != point.X || _previousY != point.Y || _previousZ != point.Z ||
-                _previousMapIndex != endMapIndex || true) {
+                _previousMapIndex != endMapIndex) {
 
                 var stopwatch = Stopwatch.StartNew();
 
-                if (useTravelSystem && false) {
+                if (useTravelSystem && AiSettings.Instance.NavigationMovement) {
                     var travelMethod = await TravelSystem.TravelSystemToUse(point, endMapIndex);
                     if (travelMethod != AkatoshTravelSystem.TravelSystemMode.Walk) {
                         _previousX = point.X;
@@ -557,10 +577,10 @@ namespace ClassicUO.AiEngine
                 }
 
                 LoadGridForPoint(new Point3D(World.Player.Position.X, World.Player.Position.Y,
-                    World.Player.Position.Z), startMapIndex);
+                    World.Player.Position.Z), World.MapIndex);
                 LoadGridForPoint(new Point3D(point.X, point.Y, point.Z), endMapIndex);
 
-                var startingNode = GetNode(World.Player.Position.ToPoint3D(), startMapIndex);
+                var startingNode = GetNode(World.Player.Position.ToPoint3D(), World.MapIndex);
 
                 if (startingNode == null) {
                     GameActions.Print($"[Navigation]: False Start.");
@@ -579,7 +599,7 @@ namespace ClassicUO.AiEngine
 
                 if (startingNode.Type == AkatoshNodeType.Teleport)
                 {
-                    startingNode = CurrentMesh.NodesWithinRange(World.Player.Position.ToPoint3D(), startMapIndex, 1).FirstOrDefault(n =>
+                    startingNode = CurrentMesh.NodesWithinRange(World.Player.Position.ToPoint3D(), World.MapIndex, 1).FirstOrDefault(n =>
                         n != null && n.Type != AkatoshNodeType.Teleport &&
                         n.Position.Distance(World.Player.Position.ToPoint3D()) != 0);
                 }
@@ -600,7 +620,7 @@ namespace ClassicUO.AiEngine
                 Path = newPath;
 
                 if (Path.Count > 10) {
-                    //GameActions.Print($"[Navigation]: Path Found: {Path.Count} points  Time: {stopwatch.ElapsedMilliseconds}");
+                    GameActions.Print($"[Navigation]: Path Found: {Path.Count} points  Time: {stopwatch.ElapsedMilliseconds}");
                 }
             }
 
@@ -610,7 +630,7 @@ namespace ClassicUO.AiEngine
             _previousMapIndex = endMapIndex;
 
             if (Path.Count > 0) {
-                //await ProcessAutoWalk();
+                await ProcessAutoWalk();
             } else {
                 StopNavigation();
             }
@@ -702,6 +722,16 @@ namespace ClassicUO.AiEngine
                         return false;
                     }
 
+                    if (point.Distance2D > 5) {
+                        StopNavigation();
+                        GameActions.Print($"[Navigation]: Distance from next point too great. Restarting Path.");
+                        return true;
+                    }
+
+                    if (!AiSettings.Instance.NavigationMovement) {
+                        return true;
+                    }
+
                     if (!await point.Run()) {
                         await Task.Delay(10);
                         ++_failedCount;
@@ -711,6 +741,8 @@ namespace ClassicUO.AiEngine
                             _failedCount = 0;
                             GameActions.MessageOverhead("Blacklisted Tile", World.Player.Serial);
                             point.Passable = false;
+                            var grid = CurrentMesh.GetGridByPosition(point.Position, point.MapIndex);
+                            grid.NeedsToSave = true;
                             Pathfinder.RemoveCurrentCache();
                             NavigationNeedsSaving = true;
 

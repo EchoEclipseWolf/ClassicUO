@@ -52,6 +52,8 @@ using ClassicUO.Configuration;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Utility.Logging;
 using ClassicUO.Assets;
+using ClassicUO.Game.AiEngine;
+using ClassicUO.Game.AiEngine.Memory;
 
 namespace ClassicUO.Game
 {
@@ -108,7 +110,6 @@ namespace ClassicUO.Game
 
         private static ConcurrentQueue<Vector3> _positionsToAdd = new ConcurrentQueue<Vector3>();
         private static Vector3 _lastAddedPosition = Vector3.Zero;
-
 
         public static int MapIndex
         {
@@ -293,13 +294,27 @@ namespace ClassicUO.Game
                         var serial = keyValue.Key;
                         var mob = keyValue.Value;
 
+                        if (mob == null || mob.Name == null) {
+                            continue;
+                        }
+
+                        if (mob.Name.ToLower().Contains("dog".ToLower())) {
+                            if (SerialHelper.IsValid(mob.Serial) && World.OPL.TryGetNameAndData(mob.Serial, out string name, out string data)) {
+                                if (data.ToLower().Contains("(tame)") || data.ToLower().Contains("(bonded)")) {
+                                    int asdfasdf = 1;
+                                }
+                            }
+                        }
+
+
+
                         if (serial != default
                             && !_mobileBlacklistedGrabs.Contains(serial)
                             && !(mob is PlayerMobile)
                             && !string.IsNullOrEmpty(mob.Name)
-                            && mob.NotorietyFlag != NotorietyFlag.Invulnerable
-                            && mob.NotorietyFlag != NotorietyFlag.Innocent
-                            && mob.NotorietyFlag != NotorietyFlag.Murderer
+                            && (mob.NotorietyFlag != NotorietyFlag.Invulnerable || AiSettings.Instance.RecordDatabaseInvuls)
+                            //&& mob.NotorietyFlag != NotorietyFlag.Innocent
+                            //&& mob.NotorietyFlag != NotorietyFlag.Murderer
                             && mob.Position.X != 65535
                             && mob.Position.Y != 65535)
                         {
@@ -319,16 +334,18 @@ namespace ClassicUO.Game
                     }
 
                     int count1 = 0;
-                    while (_positionsToAdd.Count > 0) {
-                        if (_positionsToAdd.TryDequeue(out var pos)) {
-                            await Navigation.AddWalkableTile(pos);
-                            count1++;
+
+                    if (AiSettings.Instance.NavigationRecording) {
+                        while (_positionsToAdd.Count > 0) {
+                            if (_positionsToAdd.TryDequeue(out var pos)) {
+                                await Navigation.AddWalkableTile(pos);
+                                count1++;
+                            }
                         }
                     }
 
-                    if (AiEngine.AiEngine.Instance.Navigation && !Navigation.IsLoadingFilePoint) {
-                        await Navigation.NavigateTo(new Point3D(3497, 2570, 14));
-                        await Task.Delay(100);
+                    if (AiSettings.Instance.NavigationTesting && !Navigation.IsLoadingFilePoint) {
+                        await Navigation.NavigateTo(AiSettings.Instance.TestingNavigationPoint, AiSettings.Instance.TestingNavigationMapIndex);
                     }
                 }
                 catch (Exception e) {
@@ -344,7 +361,11 @@ namespace ClassicUO.Game
             while (true) {
                 await Task.Delay(1);
 
-                if (AiEngine.AiEngine.Instance.Navigation && !Navigation.IsLoading && !Navigation.IsLoadingFilePoint && Player != null && Player.Name != null && Player.Name.Length > 0 && Player.Position != _lastAddedPosition) {
+                if (AiSettings.Instance == null) {
+                    continue;
+                }
+
+                if (AiSettings.Instance.NavigationRecording && !Navigation.IsLoading && !Navigation.IsLoadingFilePoint && Player != null && Player.Name != null && Player.Name.Length > 0 && Player.Position != _lastAddedPosition) {
                     _lastAddedPosition = Player.Position;
                     _positionsToAdd.Enqueue(Player.Position);
                 }

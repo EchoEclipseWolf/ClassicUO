@@ -141,7 +141,14 @@ namespace ClassicUO.DatabaseUtility
             if (CachedMobiles.ContainsKey(GetSaveName(mobile))) {
                 return CachedMobiles[GetSaveName(mobile)];
             }
-            return null;
+
+            var cache = new SingleMobCache {
+                Name = mobile.Name
+            };
+
+            CachedMobiles[GetSaveName(mobile)] = cache;
+
+            return cache;
         }
 
         private string TrimmedTDSData(string tds) {
@@ -181,7 +188,7 @@ namespace ClassicUO.DatabaseUtility
                 return "Teareek";
             }
 
-            return "Trammel";
+            return "UnknownMap";
         }
 
         public static int MapIndexFromName(string mapName)

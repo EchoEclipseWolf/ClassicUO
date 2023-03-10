@@ -192,6 +192,31 @@ namespace ClassicUO.Game.GameObjects
             LastAnimationChangeTime = 0;
         }
 
+        public Item FindItem(string name) {
+            for (LinkedObject i = Items; i != null; i = i.Next) {
+                Item it = (Item) i;
+
+                if (it == null || it.Name == null) {
+                    continue;
+                }
+
+                if (it.Name.ToLower().Contains(name.ToLower())) {
+                    return it;
+                }
+
+                if (SerialHelper.IsValid(it.Container)) {
+                    Item found = it.FindItem(name);
+
+                    if (found != null) {
+                        return found;
+                    }
+                }
+            }
+
+
+            return null;
+        }
+
         public Item FindItem(ushort graphic, ushort hue = 0xFFFF)
         {
             Item item = null;
