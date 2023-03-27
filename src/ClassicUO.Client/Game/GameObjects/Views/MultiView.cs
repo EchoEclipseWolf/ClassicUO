@@ -37,6 +37,11 @@ using ClassicUO.IO;
 using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using Microsoft.Xna.Framework;
+using AkatoshQuester.Helpers.LightGeometry;
+using ClassicUO.AiEngine;
+using ClassicUO.Game.AiEngine.Memory;
+using System;
+using System.Linq;
 
 namespace ClassicUO.Game.GameObjects
 {
@@ -92,6 +97,31 @@ namespace ClassicUO.Game.GameObjects
             ushort graphic = Graphic;
             bool partial = ItemData.IsPartialHue;
 
+            var foundNavPoint = false;
+            var isPathPoint = false;
+
+            if (AiSettings.Instance != null && (AiSettings.Instance.NavigationTesting || AiSettings.Instance.NavigationRecording) && Navigation.CurrentMesh != null && !Navigation.IsLoading) {
+                var point = new Point3D(Position.X, Position.Y, Position.Z);
+                var meshPoints = Navigation.GetNode(point, World.MapIndex);
+
+                if (meshPoints != null) {
+                    foundNavPoint = true;
+                }
+
+                if (Navigation.Path.Count > 0) {
+                    try {
+                        var pathNode = Navigation.Path.FirstOrDefault(n => n != null && n.Position.Distance(point) < 7 && (int)n.Position.X == (int)point.X && (int)n.Position.Y == (int)point.Y);
+
+                        if (pathNode != null) {
+                            isPathPoint = true;
+                        }
+                    }
+                    catch (Exception e) {
+                        Console.WriteLine(e);
+                    }
+                }
+            }
+
             Profile currentProfile = ProfileManager.CurrentProfile;
 
             if (currentProfile.HighlightGameObjects && SelectedObject.Object == this)
@@ -108,6 +138,14 @@ namespace ClassicUO.Game.GameObjects
             {
                 hue = Constants.DEAD_RANGE_COLOR;
                 partial = false;
+            }
+
+            if (foundNavPoint) {
+                hue = Constants.OUT_RANGE_COLOR;
+            }
+
+            if (isPathPoint) {
+                hue = Constants.HIGHLIGHT_CURRENT_OBJECT_HUE;
             }
 
             Vector3 hueVec = ShaderHueTranslator.GetHueVector(hue, partial, AlphaHue / 255f);

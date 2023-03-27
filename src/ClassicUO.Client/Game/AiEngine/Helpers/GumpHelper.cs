@@ -59,5 +59,72 @@ namespace ClassicUO.Game.AiEngine.Helpers
 
             return stringList.Count > index ? stringList[index] : "";
         }
+
+        internal static List<Gump> GetHealthbarGrumps()
+        {
+            var list = new List<Gump>();
+            var gumps = UIManager.Gumps.ToList();
+
+            foreach (var gump in gumps)
+            {
+                if (gump is BaseHealthBarGump healthbar)
+                {
+                    list.Add(healthbar);
+                }
+
+                if (gump is HealthBarGumpCustom customHealthbar)
+                {
+                    list.Add(customHealthbar);
+                }
+            }
+
+            return list;
+        }
+
+        internal static List<ContainerGump> GetContainerGrumps() {
+            var list = new List<ContainerGump>();
+            var gumps = UIManager.Gumps.ToList();
+
+            foreach (var gump in gumps) {
+                if (gump is ContainerGump containerGump) {
+                    list.Add(containerGump);
+                }
+            }
+
+            return list;
+        }
+
+        internal static ContainerGump GetContainerGrumpByItemSerial(uint serial) {
+            try {
+                var gumps = UIManager.Gumps.ToList();
+
+                foreach (var gump in gumps) {
+                    if (gump is ContainerGump containerGump) {
+                        if (containerGump.LocalSerial == serial) {
+                            return containerGump;
+                        }
+                    }
+                }
+            }
+            catch (Exception) {
+                return null;
+            }
+
+            return null;
+        }
+
+        internal static PopupMenuGump GetPopupMenu()
+        {
+            var gumps = UIManager.Gumps.ToList();
+
+            foreach (var gump in gumps)
+            {
+                if (gump is PopupMenuGump popup) {
+                    return popup;
+                }
+            }
+
+            return null;
+        }
     }
 }

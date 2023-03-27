@@ -32,6 +32,7 @@
 
 using System;
 using ClassicUO.Configuration;
+using ClassicUO.Game.AiEngine.Memory;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
@@ -285,6 +286,10 @@ namespace ClassicUO.Game
 
         public static void Attack(uint serial)
         {
+            if (MobilesMemory.Instance.PetSerials.Contains(serial)) {
+                return;
+            }
+
             if (ProfileManager.CurrentProfile.EnabledCriminalActionQuery)
             {
                 Mobile m = World.Mobiles.Get(serial);

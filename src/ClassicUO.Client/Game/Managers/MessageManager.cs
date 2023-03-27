@@ -32,6 +32,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Text;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
@@ -41,6 +43,7 @@ using ClassicUO.Game.UI.Gumps;
 using ClassicUO.Assets;
 using ClassicUO.Renderer;
 using ClassicUO.Utility;
+// ReSharper disable InconsistentNaming
 
 namespace ClassicUO.Game.Managers
 {
@@ -68,6 +71,77 @@ namespace ClassicUO.Game.Managers
     }
 
 
+    internal class MessageCombiner {
+        internal int IdentifierIndex;
+        internal int CombineIndex;
+        internal string CurrentString;
+        internal MessageCombinerType Type;
+        internal ushort Hue;
+        internal byte Font;
+        internal bool IsUnicode;
+        internal MessageType MessageType;
+        internal TextType TextType;
+        internal Entity Parent;
+        internal int CombineTime;
+
+
+        private readonly Stopwatch _stopwatch = Stopwatch.StartNew();
+
+        public MessageCombiner(int identifierIndex, int combineIndex, string initString, MessageCombinerType type, ushort hue, byte font, bool isUnicode, MessageType messageType, TextType textType, Entity parent, int combineTime)
+        {
+            IdentifierIndex = identifierIndex;
+            CombineIndex = combineIndex;
+            CurrentString = initString;
+            Type = type;
+            Hue = hue;
+            Font = font;
+            IsUnicode = isUnicode;
+            MessageType = messageType;
+            TextType = textType;
+            Parent = parent;
+            CombineTime = combineTime;
+        }
+
+        private string[] SplitString() {
+            return CurrentString.Split(' ');
+        }
+
+        internal void AddString(string toAdd) {
+            var split = SplitString();
+            if (int.TryParse(split[CombineIndex], out var oldNumber) && int.TryParse(toAdd.Split(' ')[CombineIndex], out var newNumber)) {
+                var combinedNumber = newNumber + oldNumber;
+
+                split[CombineIndex] = combinedNumber.ToString();
+
+                var rebuiltString = split.Aggregate("", (current, item) => current + (item + " "));
+                CurrentString = rebuiltString;
+            }
+        }
+
+        internal string GetIdentifier() {
+            return SplitString()[0];
+        }
+
+        internal bool MatchesIdentifier(string identifier) {
+            return identifier.Equals(GetIdentifier(), StringComparison.InvariantCultureIgnoreCase);
+        }
+
+        internal bool IsReady() {
+            return _stopwatch.ElapsedMilliseconds > CombineTime;
+        }
+
+        internal string GetCombinedString() {
+            return CurrentString;
+        }
+    }
+
+    internal enum MessageCombinerType {
+        YouHaveGained,
+        ForTheKill,
+        DatTokens,
+        CleaningTokens,
+    }
+
     internal static class MessageManager
     {
         public static PromptData PromptData { get; set; }
@@ -75,80 +149,65 @@ namespace ClassicUO.Game.Managers
         public static event EventHandler<MessageEventArgs> MessageReceived;
 
         public static event EventHandler<MessageEventArgs> LocalizedMessageReceived;
+        private static List<MessageCombiner> _messageCombiners = new();
 
 
         public static void HandleMessage
-        (
-            Entity parent,
-            string text,
-            string name,
-            ushort hue,
-            MessageType type,
-            byte font,
-            TextType textType,
-            bool unicode = false,
-            string lang = null
-        )
-        {
-            if (string.IsNullOrEmpty(text))
-            {
+            (Entity parent, string text, string name, ushort hue, MessageType type, byte font, TextType textType, bool unicode = false, string lang = null) {
+            if (string.IsNullOrEmpty(text)) {
                 return;
             }
 
             Profile currentProfile = ProfileManager.CurrentProfile;
 
-            if (currentProfile != null && currentProfile.OverrideAllFonts)
-            {
+            if (currentProfile != null && currentProfile.OverrideAllFonts) {
                 font = currentProfile.ChatFont;
                 unicode = currentProfile.OverrideAllFontsIsUnicode;
             }
 
-            switch (type)
-            {
+            switch (type) {
                 case MessageType.Command:
                 case MessageType.Encoded:
                 case MessageType.System:
-                case MessageType.Party:
-                    break;
+                case MessageType.Party: break;
 
                 case MessageType.Guild:
-                    if (currentProfile.IgnoreGuildMessages) return;
+                    if (currentProfile.IgnoreGuildMessages)
+                        return;
+
                     break;
 
                 case MessageType.Alliance:
-                    if (currentProfile.IgnoreAllianceMessages) return;
+                    if (currentProfile.IgnoreAllianceMessages)
+                        return;
+
                     break;
 
-                case MessageType.Spell:
-                {
+                case MessageType.Spell: {
                     //server hue color per default
-                    if (!string.IsNullOrEmpty(text) && SpellDefinition.WordToTargettype.TryGetValue(text, out SpellDefinition spell))
-                    {
-                        if (currentProfile != null && currentProfile.EnabledSpellFormat && !string.IsNullOrWhiteSpace(currentProfile.SpellDisplayFormat))
-                        {
+                    if (!string.IsNullOrEmpty(text) && SpellDefinition.WordToTargettype.TryGetValue(text, out SpellDefinition spell)) {
+                        if (currentProfile != null && currentProfile.EnabledSpellFormat && !string.IsNullOrWhiteSpace(currentProfile.SpellDisplayFormat)) {
                             ValueStringBuilder sb = new ValueStringBuilder(currentProfile.SpellDisplayFormat.AsSpan());
+
                             {
                                 sb.Replace("{power}".AsSpan(), spell.PowerWords.AsSpan());
                                 sb.Replace("{spell}".AsSpan(), spell.Name.AsSpan());
 
                                 text = sb.ToString().Trim();
                             }
+
                             sb.Dispose();
                         }
 
                         //server hue color per default if not enabled
-                        if (currentProfile != null && currentProfile.EnabledSpellHue)
-                        {
-                            if (spell.TargetType == TargetType.Beneficial)
-                            {
+                        if (currentProfile != null && currentProfile.EnabledSpellHue) {
+                            if (spell.TargetType == TargetType.Beneficial) {
                                 hue = currentProfile.BeneficHue;
                             }
-                            else if (spell.TargetType == TargetType.Harmful)
-                            {
+                            else if (spell.TargetType == TargetType.Harmful) {
                                 hue = currentProfile.HarmfulHue;
                             }
-                            else
-                            {
+                            else {
                                 hue = currentProfile.NeutralHue;
                             }
                         }
@@ -165,8 +224,7 @@ namespace ClassicUO.Game.Managers
                 case MessageType.Label:
                 case MessageType.Limit3Spell:
 
-                    if (parent == null)
-                    {
+                    if (parent == null) {
                         break;
                     }
 
@@ -174,33 +232,21 @@ namespace ClassicUO.Game.Managers
                     if (IgnoreManager.IgnoredCharsList.Contains(parent.Name) && type != MessageType.Spell)
                         break;
 
-                    TextObject msg = CreateMessage
-                    (
-                        text,
-                        hue,
-                        font,
-                        unicode,
-                        type,
-                        textType
-                    );
+                    TextObject msg = CreateMessage(text, hue, font, unicode, type, textType);
 
                     msg.Owner = parent;
 
-                    if (parent is Item it && !it.OnGround)
-                    {
+                    if (parent is Item it && !it.OnGround) {
                         msg.X = DelayedObjectClickManager.X;
                         msg.Y = DelayedObjectClickManager.Y;
                         msg.IsTextGump = true;
                         bool found = false;
 
-                        for (LinkedListNode<Gump> gump = UIManager.Gumps.Last; gump != null; gump = gump.Previous)
-                        {
+                        for (LinkedListNode<Gump> gump = UIManager.Gumps.Last; gump != null; gump = gump.Previous) {
                             Control g = gump.Value;
 
-                            if (!g.IsDisposed)
-                            {
-                                switch (g)
-                                {
+                            if (!g.IsDisposed) {
+                                switch (g) {
                                     case PaperDollGump paperDoll when g.LocalSerial == it.Container:
                                         paperDoll.AddText(msg);
                                         found = true;
@@ -221,8 +267,7 @@ namespace ClassicUO.Game.Managers
                                 }
                             }
 
-                            if (found)
-                            {
+                            if (found) {
                                 break;
                             }
                         }
@@ -233,22 +278,91 @@ namespace ClassicUO.Game.Managers
                     break;
             }
 
-            MessageReceived.Raise
-            (
-                new MessageEventArgs
-                (
-                    parent,
-                    text,
-                    name,
-                    hue,
-                    type,
-                    font,
-                    textType,
-                    unicode,
-                    lang
-                ),
-                parent
-            );
+            MessageCombiner foundCombiner = null;
+
+            if (text.ToLower().Contains("receiving a bonus loot item from".ToLower()) ||
+                text.ToLower().Contains("You have gained in Valor".ToLower())) {
+                return;
+            }
+
+            if (text.ToLower().Contains("have gained".ToLower()) && text.ToLower().Contains("from using".ToLower())) {
+                var splitText = text.Split(' ');
+
+                foundCombiner = _messageCombiners.FirstOrDefault(m => m.Type == MessageCombinerType.YouHaveGained && m.MatchesIdentifier(splitText[0]));
+
+                if (foundCombiner == null) {
+                    foundCombiner = new MessageCombiner(0, 3, text, MessageCombinerType.YouHaveGained, hue, font, unicode, type, textType, parent, 10000);
+                    _messageCombiners.Add(foundCombiner);
+
+                    return;
+                }
+            }
+
+            if (text.ToLower().Contains("gained".ToLower()) && text.ToLower().Contains("exp for the".ToLower()))
+            {
+                var splitText = text.Split(' ');
+
+                foundCombiner = _messageCombiners.FirstOrDefault(m => m.Type == MessageCombinerType.ForTheKill && m.MatchesIdentifier(splitText[0]));
+
+                if (foundCombiner == null)
+                {
+                    foundCombiner = new MessageCombiner(0, 2, text, MessageCombinerType.ForTheKill, hue, font, unicode, type, textType, parent, 10000);
+                    _messageCombiners.Add(foundCombiner);
+
+                    return;
+                }
+            }
+
+            if (text.ToLower().Contains("You added".ToLower()) && text.ToLower().Contains("Daat99Tokens to your Master Storage".ToLower()))
+            {
+                var splitText = text.Split(' ');
+
+                foundCombiner = _messageCombiners.FirstOrDefault(m => m.Type == MessageCombinerType.DatTokens && m.MatchesIdentifier(splitText[0]));
+
+                if (foundCombiner == null)
+                {
+                    foundCombiner = new MessageCombiner(0, 2, text, MessageCombinerType.DatTokens, hue, font, unicode, type, textType, parent, 10000);
+                    _messageCombiners.Add(foundCombiner);
+
+                    return;
+                }
+            }
+
+            if (text.ToLower().Contains("You gained".ToLower()) && text.ToLower().Contains("tokens for cleaning".ToLower()))
+            {
+                var splitText = text.Split(' ');
+
+                foundCombiner = _messageCombiners.FirstOrDefault(m => m.Type == MessageCombinerType.CleaningTokens && m.MatchesIdentifier(splitText[0]));
+
+                if (foundCombiner == null)
+                {
+                    foundCombiner = new MessageCombiner(0, 2, text, MessageCombinerType.CleaningTokens, hue, font, unicode, type, textType, parent, 10000);
+                    _messageCombiners.Add(foundCombiner);
+
+                    return;
+                }
+            }
+
+            if (foundCombiner != null) {
+                foundCombiner.AddString(text);
+
+                if (!foundCombiner.IsReady()) {
+                    return;
+                }
+                return;
+            }
+
+            var readyMessages = _messageCombiners.Where(f => f.IsReady()).ToList();
+            _messageCombiners = _messageCombiners.Where(f => !f.IsReady()).ToList();
+
+            foreach (var combiner in readyMessages)
+            {
+                MessageReceived.Raise(new MessageEventArgs(combiner.Parent, combiner.GetCombinedString(), name, combiner.Hue, combiner.MessageType, combiner.Font, combiner.TextType, combiner.IsUnicode, lang), combiner.Parent);
+            }
+
+            if (foundCombiner == null) {
+                MessageReceived.Raise(new MessageEventArgs(parent, text, name, hue, type, font, textType, unicode, lang), parent);
+            }
         }
 
         public static void OnLocalizedMessage(Entity entity, MessageEventArgs args)

@@ -45,6 +45,7 @@ namespace ClassicUO.Game.AiEngine.Memory
         #endregion
 
         public List<SingleItemMemory> Runebooks = new();
+        public List<AiContainer> HouseContainers = new();
 
         internal void AddRunebook(Item item, uint containerSerial, ItemLocationEnum itemLocation) {
             if (item == null) {

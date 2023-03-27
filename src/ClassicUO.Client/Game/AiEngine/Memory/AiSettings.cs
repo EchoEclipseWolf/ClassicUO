@@ -21,13 +21,18 @@ namespace ClassicUO.Game.AiEngine.Memory
         public uint PlayerSerial = 0;
         public bool NavigationTesting = false;
         public bool NavigationRecording = false;
+        public bool NavigationRecordingUsePathfinder = false;
         public bool NavigationMovement = false;
         public bool RecordDatabase = false;
         public bool RecordDatabaseInvuls = true;
         public bool SelfBandageHealing = false;
+        public bool SelfBuff = false;
         public string ScriptToRun = "";
         public Point3D TestingNavigationPoint = new(1015, 520, -70);
         public int TestingNavigationMapIndex = 3;
+        public double SelfHealPercent = 90;
+        public double PetHealPercent = 84;
+        public bool AllowPetMovementControl = false;
 
 
         private readonly string _aiSettingsPath;
@@ -80,8 +85,8 @@ namespace ClassicUO.Game.AiEngine.Memory
             LoadOverrides();
         }
 
-        private void LoadOverrides()
-        {
+        private void LoadOverrides() {
+            AllowPetMovementControl = false;
             PlayerSerial = World.Player.Serial;
         }
 

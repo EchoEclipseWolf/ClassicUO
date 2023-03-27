@@ -31,11 +31,13 @@
 #endregion
 
 using System;
+using System.Linq;
 using System.Text;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Assets;
+using ClassicUO.Game.AiEngine.Tasks;
 using ClassicUO.Renderer;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
@@ -287,6 +289,35 @@ namespace ClassicUO.Game.UI
                             if (hasStartColor)
                             {
                                 sbHTML.Append("<basefont color=\"#FFFFFFFF\">");
+                            }
+                        }
+
+                        var itemstest = ItemDataUpdateTask.AllEquipableItems.Where(i => i.Serial == serial).ToList();
+                        var aiItem = ItemDataUpdateTask.AllEquipableItems.FirstOrDefault(i => i.Serial == serial);
+                        if (aiItem != null) {
+                            var aiString = $"<BASEFONT COLOR=#1EFF00>Score: {aiItem.AiScore}<BASEFONT COLOR=#FFFFFF>";
+                            sb.Append('\n');
+                            sb.Append(aiString);
+                            sbHTML.Append('\n');
+                            sbHTML.Append(aiString);
+
+                            if (!aiItem.IsEquipped) {
+                                var equippedItem = ItemDataUpdateTask.EquippedItems.FirstOrDefault(i => i.Slot == aiItem.Slot);
+
+                                if (equippedItem != null) {
+                                    aiString = $"<BASEFONT COLOR=#1EFF00>Equipped Score: {equippedItem.AiScore}<BASEFONT COLOR=#FFFFFF>";
+                                    sb.Append('\n');
+                                    sb.Append(aiString);
+                                    sbHTML.Append('\n');
+                                    sbHTML.Append(aiString);
+
+                                    aiString = $"<BASEFONT COLOR=#1EFF00>Equipped Name: {equippedItem.Name}<BASEFONT COLOR=#FFFFFF>";
+                                    sb.Append('\n');
+                                    sb.Append(aiString);
+                                    sbHTML.Append('\n');
+                                    sbHTML.Append(aiString);
+                                }
+
                             }
                         }
 

@@ -96,6 +96,9 @@ namespace ClassicUO.AiEngine
 
             if (Points.TryGetValue(hash, out var nodes)) {
                 if (nodes.Count == 1) {
+                    if (nodes.FirstOrDefault().Distance > distance) {
+                        return null;
+                    }
                     return nodes.FirstOrDefault();
                 } else if (nodes.Count > 1) {
                     Node bestNode = null;

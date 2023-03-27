@@ -345,7 +345,7 @@ namespace ClassicUO.Game
                     }
 
                     if (AiSettings.Instance.NavigationTesting && !Navigation.IsLoadingFilePoint) {
-                        await Navigation.NavigateTo(AiSettings.Instance.TestingNavigationPoint, AiSettings.Instance.TestingNavigationMapIndex);
+                        await Navigation.NavigateTo(AiSettings.Instance.TestingNavigationPoint, AiSettings.Instance.TestingNavigationMapIndex, true);
                     }
                 }
                 catch (Exception e) {

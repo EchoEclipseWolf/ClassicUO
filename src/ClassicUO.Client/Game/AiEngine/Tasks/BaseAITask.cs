@@ -23,6 +23,11 @@ namespace ClassicUO.AiEngine.AiEngineTasks {
             return 1;
         }
         
+        public virtual async Task<bool> Start() {
+            
+            return true;
+        }
+
         public virtual async Task<bool> Pulse() {
             
             return true;
@@ -120,6 +125,7 @@ namespace ClassicUO.AiEngine.AiEngineTasks {
 
                         if (waitForCondition != null && waitForCondition()) {
                             found = true;
+                            await Task.Delay(waitTimeAfter);
                             break;
                         }
                     }

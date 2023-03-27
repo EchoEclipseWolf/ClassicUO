@@ -1280,6 +1280,7 @@ namespace ClassicUO.Network
 
                                 break;
 
+                            case 0x10C:
                             case 0x0049:
                                 if (loader.GetGumpTexture(0x9CDF, out _) != null)
                                 {
@@ -3007,6 +3008,9 @@ namespace ClassicUO.Network
                     facet = p.ReadUInt16BE();
                 }
 
+
+                facet = 5;
+
                 if (MultiMapLoader.Instance.HasFacet(facet))
                 {
                     gump.SetMapTexture
@@ -3174,6 +3178,10 @@ namespace ClassicUO.Network
             string name = p.ReadASCII();
 
             WMapEntity wme = World.WMapManager.GetEntity(serial);
+
+            if (serial == 0x40019A35) {
+                int bob = 1;
+            }
 
             if (wme != null && !string.IsNullOrEmpty(name))
             {
@@ -4872,6 +4880,10 @@ namespace ClassicUO.Network
                     if (first)
                     {
                         name = str;
+
+                        if (serial == 0x40019A35) {
+                            int bob = 1;
+                        }
 
                         if (entity != null && !SerialHelper.IsMobile(serial))
                         {

@@ -461,37 +461,40 @@ namespace ClassicUO.AiEngine
             var point3d = new Point3D(point.X, point.Y, point.Z);
             LoadGridForPoint(point3d, World.MapIndex);
 
-            if (GetNode(point3d, World.MapIndex) != null) {
+            var existingNode = GetNode(point3d, World.MapIndex, 7);
+            if (existingNode != null) {
+                var distance = existingNode.Distance;
                 return true;
             }
 
-            CurrentMesh.AddAndConnect(
-                new Point3D(point.X, point.Y, point.Z), World.MapIndex);
-            NavigationNeedsSaving = true;
+            if (AiSettings.Instance.NavigationRecordingUsePathfinder) {
+                //for (int z = -10; z < 10; z++) {
+                for (int y = -16; y < 16; y++) {
+                    for (int x = -16; x < 16; x++) {
+                        if (GetNode(new Point3D(point.X + x, point.Y + y, point.Z), World.MapIndex) != null) {
+                            continue;
+                        }
 
-            //for (int z = -10; z < 10; z++) {
-            for (int y = -16; y < 16; y++) {
-                for (int x = -16; x < 16; x++) {
-                    if (GetNode(new Point3D(point.X + x, point.Y + y, point.Z), World.MapIndex) != null) {
-                        continue;
-                    }
+                        var path = Game.Pathfinder.CanWalkTo((int) (point.X + x), (int) (point.Y + y), (int) (point.Z), 0, out var pathSize);
 
-                    var path = Game.Pathfinder.CanWalkTo
-                        ((int) (point.X + x), (int) (point.Y + y), (int) (point.Z), 0, out var pathSize);
+                        if (pathSize > 0) {
+                            for (int i = 0; i < pathSize; i++) {
+                                var node = path[i];
 
-                    if (pathSize > 0) {
-                        for (int i = 0; i < pathSize; i++) {
-                            var node = path[i];
+                                if (node == null)
+                                    continue;
 
-                            if (node == null)
-                                continue;
-
-                            CurrentMesh.AddAndConnect(new Point3D(node.X, node.Y, node.Z), World.MapIndex);
-                            NavigationNeedsSaving = true;
+                                CurrentMesh.AddAndConnect(new Point3D(node.X, node.Y, node.Z), World.MapIndex, 6);
+                                NavigationNeedsSaving = true;
+                            }
                         }
                     }
                 }
             }
+
+            CurrentMesh.AddAndConnect(
+                new Point3D(point.X, point.Y, point.Z), World.MapIndex, 6);
+            NavigationNeedsSaving = true;
             //}
 
             return false;
@@ -499,7 +502,7 @@ namespace ClassicUO.AiEngine
 
         public static Node GetNode(Point3D from, int mapIndex, int distance = 10) {
             var meshGrid = CurrentMesh.GetGridByPosition(from, mapIndex);
-            var node = meshGrid.GetNodeByPosition(from);
+            var node = meshGrid.GetNodeByPosition(from, distance);
             if (node != null) 
                 return node;
 
@@ -539,15 +542,15 @@ namespace ClassicUO.AiEngine
             return pathFinder.Count > 0;
         }
 
-        internal static async Task<bool> NavigateTo(Mobile mob) {
-            return await NavigateTo(mob.Position.ToPoint3D(), World.MapIndex, false, false);
+        internal static async Task<bool> NavigateTo(Mobile mob, bool allowNeighborsEnd = true) {
+            return await NavigateTo(mob.Position.ToPoint3D(), World.MapIndex, false, false, allowNeighborsEnd);
         }
 
-        public static async Task<bool> NavigateTo(Point3D point, int endMapIndex) {
-            return await NavigateTo(point, endMapIndex, true);
+        public static async Task<bool> NavigateTo(Point3D point, int endMapIndex, bool allowNeighborsEnd = true) {
+            return await NavigateTo(point, endMapIndex, true, true, allowNeighborsEnd);
         }
 
-        public static async Task<bool> NavigateTo(Point3D point, int endMapIndex, bool useTravelSystem = true, bool saveToCache = true) {
+        public static async Task<bool> NavigateTo(Point3D point, int endMapIndex, bool useTravelSystem = true, bool saveToCache = true, bool allowNeighborsEnd = true) {
             if (IsNavigationBusy) {
                 return true;
             }
@@ -590,6 +593,13 @@ namespace ClassicUO.AiEngine
                 }
 
                 var endingNode = GetNode(new Point3D(point.X, point.Y, point.Z), endMapIndex);
+                if (endingNode == null && allowNeighborsEnd) {
+                    List<Node> pointsInRangeExisting =
+                        CurrentMesh.NodesWithinRange(new Point3D(point.X, point.Y, point.Z), endMapIndex, Navigation.SearchForNeighboursDistance).OrderBy(n => n.Distance).ToList();
+
+                    endingNode = pointsInRangeExisting.FirstOrDefault();
+                }
+
                 if (endingNode == null) {
                     GameActions.Print($"[Navigation]: False End.");
                     Path.Clear();

@@ -32,6 +32,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using ClassicUO.Configuration;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.Managers;
@@ -42,6 +43,9 @@ using ClassicUO.Renderer;
 using Microsoft.Xna.Framework;
 using Microsoft.Xna.Framework.Graphics;
 using MathHelper = ClassicUO.Utility.MathHelper;
+using AkatoshQuester.Helpers.LightGeometry;
+using ClassicUO.AiEngine;
+using ClassicUO.Game.AiEngine.Memory;
 
 namespace ClassicUO.Game.GameObjects
 {
@@ -84,6 +88,36 @@ namespace ClassicUO.Game.GameObjects
             ushort hue = Hue;
             ushort graphic = DisplayedGraphic;
             bool partial = ItemData.IsPartialHue;
+
+            var foundNavPoint = false;
+            var isPathPoint = false;
+            var foundSearchHighlightContainer = false;
+
+            if (AiSettings.Instance != null && (AiSettings.Instance.NavigationTesting || AiSettings.Instance.NavigationRecording) && Navigation.CurrentMesh != null && !Navigation.IsLoading) {
+                var point = new Point3D(Position.X, Position.Y, Position.Z);
+                var meshPoints = Navigation.GetNode(point, World.MapIndex);
+
+                if (meshPoints != null) {
+                    foundNavPoint = true;
+                }
+
+                if (Navigation.Path.Count > 0) {
+                    try {
+                        var pathNode = Navigation.Path.FirstOrDefault(n => n != null && n.Position.Distance(point) < 7 && (int)n.Position.X == (int)point.X && (int)n.Position.Y == (int)point.Y);
+
+                        if (pathNode != null) {
+                            isPathPoint = true;
+                        }
+                    }
+                    catch (Exception e) {
+                        Console.WriteLine(e);
+                    }
+                }
+            }
+
+            if (HouseMemory.Instance != null && HouseMemory.Instance.ContainersToHighlight.Contains(Serial)) {
+                foundSearchHighlightContainer = true;
+            }
 
             if (OnGround)
             {
@@ -151,6 +185,18 @@ namespace ClassicUO.Game.GameObjects
                 {
                     hue = 0x038E;
                 }
+            }
+
+            if (foundNavPoint) {
+                hue = Constants.OUT_RANGE_COLOR;
+            }
+
+            if (isPathPoint) {
+                hue = Constants.HIGHLIGHT_CURRENT_OBJECT_HUE;
+            }
+
+            if (foundSearchHighlightContainer) {
+                hue = Constants.HIGHLIGHT_CURRENT_OBJECT_HUE;
             }
 
             hueVec = ShaderHueTranslator.GetHueVector(hue, partial, alpha);

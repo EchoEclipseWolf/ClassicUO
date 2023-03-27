@@ -39,7 +39,9 @@ using AkatoshQuester.Helpers.LightGeometry;
 using ClassicUO.AiEngine;
 using ClassicUO.Configuration;
 using ClassicUO.Game.AiEngine;
+using ClassicUO.Game.AiEngine.AiClasses;
 using ClassicUO.Game.AiEngine.Memory;
+using ClassicUO.Game.AiEngine.Tasks;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Scenes;
 using ClassicUO.Game.UI.Controls;
@@ -48,6 +50,7 @@ using ClassicUO.Renderer;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
+using static ClassicUO.Renderer.UltimaBatcher2D;
 
 namespace ClassicUO.Game.UI.Gumps
 {
@@ -58,27 +61,55 @@ namespace ClassicUO.Game.UI.Gumps
         SETTESTING = 2,
         PLAYSCRIPT = 3,
         STOPSCRIPT = 4,
+        RESETGOLDTOKENS = 5,
+        ADDHOUSE = 6,
+        SEARCHHOUSE = 7,
+        SEARCHHOUSEOPEN = 8,
     }
 
-    internal sealed class AIEngineOverlayGump : Gump
-    {
+    internal sealed class AIEngineOverlayGump : Gump {
+        public static AIEngineOverlayGump Instance;
+
         private const string HEADER_LABEL_TEXT = "AI Engine";
         private const string SETTESTING_LABEL_TEXT = "Set Testing Location";
+        private const string ADDHOUSE_LABEL_TEXT = "Add House";
+        private const string SEARCHHOUSE_LABEL_TEXT = "Search House";
+        private const string SEARCHHOUSE_OPEN_LABEL_TEXT = "Open Cont";
         
         private static Point _lastPosition = new Point(-1, -1);
 
         private uint _timeToUpdate;
         private readonly AlphaBlendControl _alphaBlendControl;
         private readonly Checkbox _enableSelfBandageHealingCheckbox;
+        private readonly Checkbox _enableSelfBuffCheckbox;
         private readonly Checkbox _enableRecordDatabaseCheckbox;
         private readonly Checkbox _enableNavigationRecordingCheckbox;
+        private readonly Checkbox _enableNavigationRecordingPathfinderCheckbox;
         private readonly Checkbox _enableNavigationCheckbox;
         private readonly Checkbox _enableNavigationMovementCheckbox;
         private readonly Combobox _scriptComboBox;
         private readonly Button _playPauseButton;
         private readonly Button _setTestingButton;
+        private readonly Button _resetGoldTokensButton;
+        private readonly Button _addHouseButton;
         private string _cacheText = string.Empty;
         private readonly Label _setTestingLabel;
+        private readonly Label _gainedGoldLabel;
+        private readonly Label _gainedTokenLabel;
+        private readonly Label _addHouseLabel;
+        private readonly Label _currentTileLabel;
+        private readonly StbTextBox _searchHouseTextBox;
+        private readonly Label _searchHouseLabel;
+        private readonly Label _searchHouseOpenLabel;
+        private readonly Button _searchHouseButton;
+        private readonly Button _searchHouseOpenButton;
+        private readonly ResizePic _searchResizePic;
+        public static int GainedGold = 0;
+        public static int GainedTokens = 0;
+
+        private Point3D _firstHousePoint = Point3D.Empty;
+        private int _firstHouseMapIndex = 0;
+        private Point3D _secondHousePoint = Point3D.Empty;
 
         private Combobox AddCombobox
         (
@@ -98,8 +129,8 @@ namespace ClassicUO.Game.UI.Gumps
             return combobox;
         }
 
-        public AIEngineOverlayGump(int x, int y) : base(0, 0)
-        {
+        public AIEngineOverlayGump(int x, int y) : base(0, 0) {
+            Instance = this;
             CanMove = true;
             CanCloseWithEsc = false;
             CanCloseWithRightClick = true;
@@ -126,6 +157,42 @@ namespace ClassicUO.Game.UI.Gumps
                     Width = Width, Height = Height
                 }
             );
+
+            Add
+            (
+                _gainedGoldLabel = new Label($"Gained Gold: {GainedGold:N0}", true, textColor, font: (byte) 1) {
+                    X = 90,
+                    Y = 7
+                }
+            );
+
+            Add
+            (
+                _gainedTokenLabel = new Label($"Gained Tokens: {GainedTokens:N0}", true, textColor, font: (byte) 1) {
+                    X = 270,
+                    Y = 7
+                }
+            );
+
+            Add
+            (
+                _resetGoldTokensButton = new Button((int)AiEngineButtons.RESETGOLDTOKENS, 0x0481, 0x0483, 0x0482)
+                {
+                    X = 460,
+                    Y = 7,
+                    ButtonAction = ButtonAction.Activate
+                }
+            );
+
+            Add
+            (
+                _currentTileLabel = new Label($"Current Tile: ", true, textColor, font: (byte) 1) {
+                    X = 2,
+                    Y = currentY
+                }
+            );
+
+            currentY += SPACING;
 
             Add
             (
@@ -159,6 +226,23 @@ namespace ClassicUO.Game.UI.Gumps
                 {
                     IsChecked = AiSettings.Instance.NavigationRecording,
                     X = 2,
+                    Y = currentY
+                }
+            );
+
+            Add
+            (
+                _enableNavigationRecordingPathfinderCheckbox = new Checkbox
+                (
+                    0x00D2,
+                    0x00D3,
+                    "Use Pathfinder",
+                    255,
+                    1153
+                )
+                {
+                    IsChecked = AiSettings.Instance.NavigationRecordingUsePathfinder,
+                    X = 200,
                     Y = currentY
                 }
             );
@@ -243,6 +327,44 @@ namespace ClassicUO.Game.UI.Gumps
 
             currentY += SPACING;
 
+            Add
+            (
+                _enableSelfBuffCheckbox = new Checkbox
+                (
+                    0x00D2,
+                    0x00D3,
+                    "Self Buff",
+                    255,
+                    1153
+                )
+                {
+                    IsChecked = AiSettings.Instance.SelfBuff,
+                    X = 2,
+                    Y = currentY
+                }
+            );
+
+            currentY += SPACING;
+
+            Add
+            (
+                _addHouseButton = new Button((int)AiEngineButtons.ADDHOUSE, 0x0481, 0x0483, 0x0482)
+                {
+                    X = 2,
+                    Y = currentY,
+                    ButtonAction = ButtonAction.Activate
+                }
+            );
+
+            _addHouseLabel = new Label($"{ADDHOUSE_LABEL_TEXT}  X: {_firstHousePoint.X}  Y: {_firstHousePoint.Y}  Z: {_firstHousePoint.Z}  MapIndex: {_firstHouseMapIndex}", true, textColor, font: (byte)1)
+            {
+                X = 40,
+                Y = currentY
+            };
+            Add(_addHouseLabel);
+
+            currentY += SPACING;
+
 
             _scriptComboBox = AddCombobox
                 (null, AiCore.Instance.MainScripts.Keys.ToArray(), 0, 2, currentY, 150);
@@ -260,6 +382,74 @@ namespace ClassicUO.Game.UI.Gumps
             );
 
             currentY += SPACING;
+
+            // Text Inputs
+            Add
+            (
+                _searchResizePic = new ResizePic(0x0BB8)
+                {
+                    X = 2,
+                    Y = currentY,
+                    Width = 210,
+                    Height = 30
+                }
+            );
+
+            Add
+            (
+                _searchHouseTextBox = new StbTextBox
+                (
+                    5,
+                    16,
+                    190,
+                    false,
+                    hue: 0x034F
+                )
+                {
+                    X = 5,
+                    Y = currentY,
+                    Width = 190,
+                    Height = 25
+                }
+            );
+
+            _searchHouseTextBox.SetText("Platemail Arms");
+
+            _searchHouseLabel = new Label(SEARCHHOUSE_LABEL_TEXT, true, textColor, font: (byte)1)
+            {
+                X = 220,
+                Y = currentY + 4
+            };
+            Add(_searchHouseLabel);
+
+            Add
+            (
+                _searchHouseButton = new Button((int)AiEngineButtons.SEARCHHOUSE, 0x0481, 0x0483, 0x0482)
+                {
+                    X = 310,
+                    Y = currentY + 4,
+                    ButtonAction = ButtonAction.Activate
+                }
+            );
+
+            _searchHouseOpenLabel = new Label(SEARCHHOUSE_OPEN_LABEL_TEXT, true, textColor, font: (byte)1)
+            {
+                X = 345,
+                Y = currentY + 4
+            };
+            Add(_searchHouseOpenLabel);
+
+            Add
+            (
+                _searchHouseOpenButton = new Button((int)AiEngineButtons.SEARCHHOUSEOPEN, 0x0481, 0x0483, 0x0482)
+                {
+                    X = 380,
+                    Y = currentY + 4,
+                    ButtonAction = ButtonAction.Activate
+                }
+            );
+
+
             LayerOrder = UILayer.Over;
 
             WantUpdateSize = true;
@@ -300,8 +490,13 @@ namespace ClassicUO.Game.UI.Gumps
 
                 sb.Dispose();
 
-                _alphaBlendControl.Width = IsMinimized ? 85 : 450;
+                _alphaBlendControl.Width = IsMinimized ? 450 : 450;
                 _alphaBlendControl.Height = IsMinimized ? 30 : 500;
+
+                _gainedGoldLabel.Text = $"Gained Gold: {GainedGold:N0}";
+                _gainedTokenLabel.Text = $"Gained Tokens: {GainedTokens:N0}";
+                var filePoint = Navigation.GetFilePointFromPoint(World.Player.Position.ToPoint3D());
+                _currentTileLabel.Text = $"Tile X: {filePoint.X}  Y: {filePoint.Y}";
 
                 var selectedScriptToRun = AiCore.Instance.MainScripts.Keys.ToList()[_scriptComboBox.SelectedIndex];
 
@@ -310,14 +505,18 @@ namespace ClassicUO.Game.UI.Gumps
                                   AiSettings.Instance.NavigationMovement != _enableNavigationMovementCheckbox.IsChecked ||
                                   AiSettings.Instance.NavigationTesting != _enableNavigationCheckbox.IsChecked ||
                                   AiSettings.Instance.RecordDatabase != _enableRecordDatabaseCheckbox.IsChecked ||
+                                  AiSettings.Instance.SelfBuff != _enableSelfBuffCheckbox.IsChecked ||
+                                  AiSettings.Instance.NavigationRecordingUsePathfinder != _enableNavigationRecordingPathfinderCheckbox.IsChecked ||
                                   AiSettings.Instance.ScriptToRun != selectedScriptToRun;
 
 
                 AiSettings.Instance.SelfBandageHealing = _enableSelfBandageHealingCheckbox.IsChecked;
                 AiSettings.Instance.NavigationTesting = _enableNavigationCheckbox.IsChecked;
                 AiSettings.Instance.NavigationRecording = _enableNavigationRecordingCheckbox.IsChecked;
+                AiSettings.Instance.NavigationRecordingUsePathfinder = _enableNavigationRecordingPathfinderCheckbox.IsChecked;
                 AiSettings.Instance.NavigationMovement = _enableNavigationMovementCheckbox.IsChecked;
                 AiSettings.Instance.RecordDatabase = _enableRecordDatabaseCheckbox.IsChecked;
+                AiSettings.Instance.SelfBuff = _enableSelfBuffCheckbox.IsChecked;
                 AiSettings.Instance.ScriptToRun = selectedScriptToRun;
 
                 if (shouldSave) {
@@ -333,6 +532,20 @@ namespace ClassicUO.Game.UI.Gumps
                 _enableNavigationMovementCheckbox.IsVisible = !IsMinimized;
                 _setTestingButton.IsVisible = !IsMinimized;
                 _enableRecordDatabaseCheckbox.IsVisible = !IsMinimized;
+                _gainedGoldLabel.IsVisible = true;
+                _gainedTokenLabel.IsVisible = true;
+                _resetGoldTokensButton.IsVisible = !IsMinimized;
+                _enableSelfBuffCheckbox.IsVisible = !IsMinimized;
+                _addHouseButton.IsVisible = !IsMinimized;
+                _addHouseLabel.IsVisible = !IsMinimized;
+                _currentTileLabel.IsVisible = !IsMinimized;
+                _enableNavigationRecordingPathfinderCheckbox.IsVisible = !IsMinimized;
+                _searchHouseTextBox.IsVisible = !IsMinimized;
+                _searchHouseButton.IsVisible = !IsMinimized;
+                _searchHouseLabel.IsVisible = !IsMinimized;
+                _searchResizePic.IsVisible = !IsMinimized;
+                _searchHouseOpenLabel.IsVisible = !IsMinimized;
+                _searchHouseOpenButton.IsVisible = !IsMinimized;
 
 
                 WantUpdateSize = true;
@@ -360,6 +573,19 @@ namespace ClassicUO.Game.UI.Gumps
             return true;
         }
 
+        internal void UpdatePlayPauseButton() {
+            if (AiCore.IsScriptRunning) {
+                _playPauseButton.ButtonGraphicNormal = 0x07e8;
+                _playPauseButton.ButtonGraphicOver = 0x07e9;
+                _playPauseButton.ButtonGraphicPressed = 0x07ea;
+            }
+            else {
+                _playPauseButton.ButtonGraphicNormal = 0x07e5;
+                _playPauseButton.ButtonGraphicOver = 0x07e6;
+                _playPauseButton.ButtonGraphicPressed = 0x07e7;
+            }
+        }
+
         public override void OnButtonClick(int buttonID) {
             switch (buttonID) {
                 case (int) AiEngineButtons.SETTESTING: {
@@ -373,19 +599,59 @@ namespace ClassicUO.Game.UI.Gumps
                 }
 
                 case (int) AiEngineButtons.PLAYSCRIPT: {
-                    AiCore.IsScriptRunning = !AiCore.IsScriptRunning;
-
                     if (AiCore.IsScriptRunning) {
-                        _playPauseButton.ButtonGraphicNormal = 0x07e8;
-                        _playPauseButton.ButtonGraphicOver = 0x07e9;
-                        _playPauseButton.ButtonGraphicPressed = 0x07ea;
+                        AiCore.Instance.StopScript();
                     }
                     else {
-                        _playPauseButton.ButtonGraphicNormal = 0x07e5;
-                        _playPauseButton.ButtonGraphicOver = 0x07e6;
-                        _playPauseButton.ButtonGraphicPressed = 0x07e7;
+                        AiCore.Instance.StartScript();
+                    }
+                    break;
+                }
+
+                case (int) AiEngineButtons.RESETGOLDTOKENS: {
+                    ItemLearnerTask.ShouldResetGoldTokens = true;
+                    break;
+                }
+
+                case (int) AiEngineButtons.ADDHOUSE: {
+                    if (Equals(_firstHousePoint, Point3D.Empty) || _firstHouseMapIndex == 0) {
+                        _firstHousePoint = World.Player.Position.ToPoint3D();
+                        _firstHouseMapIndex = World.MapIndex;
+                        _addHouseLabel.Text = $"{ADDHOUSE_LABEL_TEXT}  X: {_firstHousePoint.X}  Y: {_firstHousePoint.Y}  Z: {_firstHousePoint.Z}  MapIndex: {_firstHouseMapIndex}";
+                        GameActions.MessageOverhead("Added First House Point", World.Player.Serial);
+
+                        break;
                     }
 
+                    if (Equals(_secondHousePoint, Point3D.Empty)) {
+                        _secondHousePoint = World.Player.Position.ToPoint3D();
+                        _addHouseLabel.Text = $"{ADDHOUSE_LABEL_TEXT}  X: {_secondHousePoint.X}  Y: {_secondHousePoint.Y}  Z: {_secondHousePoint.Z}  MapIndex: {_firstHouseMapIndex}";
+                        GameActions.MessageOverhead("Added Second House Point", World.Player.Serial);
+
+                        break;
+                    }
+
+                    var aiHouse = new AiHouse(_firstHousePoint, _secondHousePoint, World.Player.Position.ToPoint3D(), _firstHouseMapIndex);
+                    HouseMemory.Instance.AddHouse(aiHouse);
+
+                    _firstHousePoint = Point3D.Empty;
+                    _firstHouseMapIndex = 0;
+                    _addHouseLabel.Text = $"{ADDHOUSE_LABEL_TEXT}  X: {_firstHousePoint.X}  Y: {_firstHousePoint.Y}  Z: {_firstHousePoint.Z}  MapIndex: {_firstHouseMapIndex}";
+                    GameActions.MessageOverhead("Added House to the list", World.Player.Serial);
+
+                    break;
+                }
+
+                case (int) AiEngineButtons.SEARCHHOUSE: {
+                    if (!string.IsNullOrEmpty(_searchHouseTextBox.Text)) {
+                        HouseMemory.Instance.SearchForItemsToHighlight(_searchHouseTextBox.Text);
+                    }
+
+                    break;
+                }
+
+                case (int) AiEngineButtons.SEARCHHOUSEOPEN: {
+                    HouseMemory.Instance.OpenClosestContainer();
                     break;
                 }
             }

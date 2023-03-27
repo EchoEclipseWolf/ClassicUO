@@ -44,7 +44,7 @@ namespace ClassicUO.Game
 {
     internal static class Pathfinder
     {
-        private const int PATHFINDER_MAX_NODES = 5000;
+        private const int PATHFINDER_MAX_NODES = 500;
         private static int _goalNode;
         private static bool _goalFound;
         private static int _activeOpenNodes, _activeCloseNodes, _pathfindDistance;
@@ -1152,21 +1152,21 @@ namespace ClassicUO.Game
 
         public class PathNode
         {
-            public int X { get; set; }
+            public int X = 0;
 
-            public int Y { get; set; }
+            public int Y = 0;
 
-            public int Z { get; set; }
+            public int Z = 0;
 
-            public int Direction { get; set; }
+            public int Direction = 0;
 
-            public bool Used { get; set; }
+            public bool Used = false;
 
-            public int Cost { get; set; }
+            public int Cost = 0;
 
-            public int DistFromStartCost { get; set; }
+            public int DistFromStartCost = 0;
 
-            public int DistFromGoalCost { get; set; }
+            public int DistFromGoalCost = 0;
 
             public PathNode Parent { get; set; }
 

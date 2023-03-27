@@ -102,6 +102,9 @@ namespace ClassicUO.Game.UI.Gumps
         protected StbTextBox _textBox;
         protected Label _rangeLabel;
 
+        internal string Name => _name;
+
+
         protected abstract void BuildGump();
 
 

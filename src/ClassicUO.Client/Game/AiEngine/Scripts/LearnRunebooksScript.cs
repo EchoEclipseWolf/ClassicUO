@@ -32,7 +32,7 @@ namespace ClassicUO.Game.AiEngine.Scripts
             _hasRun = false;
             if (_hasRun) {
                 GameActions.MessageOverhead($"Finished Learning Runebooks - Stopping", Player.Serial);
-                AiCore.IsScriptRunning = false;
+                AiCore.Instance.StopScript();
 
                 return true;
             }
@@ -42,7 +42,7 @@ namespace ClassicUO.Game.AiEngine.Scripts
             if (magerySkill is { Value: < 60 }) {
                 _hasRun = true;
                 GameActions.MessageOverhead($"[LearnRunebook] Learning Runebooks Needs a Higher Magery Level of 60 - Stopping", Player.Serial);
-                AiCore.IsScriptRunning = false;
+                AiCore.Instance.StopScript();
 
                 return true;
             }
@@ -129,7 +129,7 @@ namespace ClassicUO.Game.AiEngine.Scripts
             }
             else {
                 GameActions.MessageOverhead($"[LearnRunebook] Finished Learning Runebooks Part 2 - Stopping", Player.Serial);
-                AiCore.IsScriptRunning = false;
+                AiCore.Instance.StopScript();
                 _hasRun = true;
                 return true;
 

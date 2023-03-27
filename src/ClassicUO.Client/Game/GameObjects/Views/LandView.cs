@@ -62,9 +62,9 @@ namespace ClassicUO.Game.GameObjects
             var foundNavPoint = false;
             var isPathPoint = false;
 
-            if ((AiSettings.Instance.NavigationTesting || AiSettings.Instance.NavigationRecording) && Navigation.CurrentMesh != null && !Navigation.IsLoading) {
+            if (AiSettings.Instance != null && (AiSettings.Instance.NavigationTesting || AiSettings.Instance.NavigationRecording) && Navigation.CurrentMesh != null && !Navigation.IsLoading) {
                 var point = new Point3D(Position.X, Position.Y, Position.Z);
-                var meshPoints = Navigation.GetNode(point, World.MapIndex);
+                var meshPoints = Navigation.GetNode(point, World.MapIndex, 100);
 
                 if (meshPoints != null) {
                     foundNavPoint = true;
@@ -72,7 +72,7 @@ namespace ClassicUO.Game.GameObjects
 
                 if (Navigation.Path.Count > 0) {
                     try {
-                        var pathNode = Navigation.Path.FirstOrDefault(n => n != null && (int)n.Position.X == (int)point.X && (int)n.Position.Y == (int)point.Y);
+                        var pathNode = Navigation.Path.FirstOrDefault(n => n != null && n.Position.Distance(point) < 7 && (int)n.Position.X == (int)point.X && (int)n.Position.Y == (int)point.Y);
 
                         if (pathNode != null) {
                             isPathPoint = true;

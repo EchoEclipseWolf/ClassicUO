@@ -147,12 +147,12 @@ namespace AkatoshQuester.Helpers.Cartography
             return true;
         }
 
-        public bool AddAndConnect(Point3D newPoint, int mapIndex)
+        public bool AddAndConnect(Point3D newPoint, int mapIndex, int distance)
         {
             if (Equals(newPoint, Point3D.Empty))
                 return false;
 
-            var currentNode = Navigation.GetNode(newPoint, mapIndex);
+            var currentNode = Navigation.GetNode(newPoint, mapIndex, distance);
 
             if (currentNode != null || GridContainsPoint(newPoint)) {
 
@@ -201,7 +201,7 @@ namespace AkatoshQuester.Helpers.Cartography
             }
 
             if (candidates.Count == 0) {
-                GameActions.MessageOverhead($"Added link with 0 count", World.Player.Serial);
+                //GameActions.MessageOverhead($"Added link with 0 count", World.Player.Serial);
             }
 
             Console.WriteLine($"[Navigation]: Saved Point: Linked {candidates.Count}.");

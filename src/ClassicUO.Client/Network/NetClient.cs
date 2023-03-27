@@ -265,6 +265,9 @@ namespace ClassicUO.Network
 
         public void Send(byte[] data, int length, bool ignorePlugin = false, bool skip_encryption = false)
         {
+            if (data[0] != 115 && data[0] != 240 && data[0] != 214) {
+                int bob = 1;
+            }
             if (!ignorePlugin && !Plugin.ProcessSendPacket(data, ref length))
             {
                 return;

@@ -147,6 +147,8 @@ namespace ClassicUO.Game.AiEngine.Enums
             0x49cc,
             0x0fae,
             0xa63c,
+            0x09B2,
+            0x0E75,
         };
     }
 }

@@ -31,22 +31,64 @@
 #endregion
 
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Renderer;
 
 namespace ClassicUO.Game.Managers
 {
+    internal class DamageCollector {
+        public uint ObjId;
+        public int Damage;
+
+        private readonly Stopwatch _stopwatch;
+        private const int COLLECT_DAMAGE_UPDATE_TIME = 1000;
+
+        public DamageCollector(uint objId, int damage) {
+            ObjId = objId;
+            Damage = damage;
+            _stopwatch = Stopwatch.StartNew();
+        }
+
+        public bool IsReady() {
+            return _stopwatch.ElapsedMilliseconds >= COLLECT_DAMAGE_UPDATE_TIME;
+        }
+
+        public void AddDamage(int damage) {
+            Damage += damage;
+        }
+
+        public int GetDamage() => Damage;
+
+        public override string ToString() {
+            return $"DamageCollector  Damage: {Damage}  Obj: {ObjId}";
+        }
+    }
     internal class WorldTextManager : TextRenderer
     {
         private readonly Dictionary<uint, OverheadDamage> _damages = new Dictionary<uint, OverheadDamage>();
         private readonly List<Tuple<uint, uint>> _subst = new List<Tuple<uint, uint>>();
         private readonly List<uint> _toRemoveDamages = new List<uint>();
 
+        
+        private List<DamageCollector> _damgeCollectUpdates = new ();
+
 
         public override void Update()
         {
             base.Update();
+
+            var readyCollectors = _damgeCollectUpdates.Where(d => d.IsReady()).ToList();
+            _damgeCollectUpdates = _damgeCollectUpdates.Where(d => !d.IsReady()).ToList();
+
+            foreach (var damageCollector in readyCollectors) {
+                var dm = new OverheadDamage(World.Get(damageCollector.ObjId));
+                _damages[damageCollector.ObjId] = dm;
+                dm.Add(damageCollector.Damage);
+            }
 
 
             UpdateDamageOverhead();
@@ -60,6 +102,8 @@ namespace ClassicUO.Game.Managers
 
                 _toRemoveDamages.Clear();
             }
+
+            
         }
 
 
@@ -129,15 +173,26 @@ namespace ClassicUO.Game.Managers
         }
 
 
-        internal void AddDamage(uint obj, int dmg)
-        {
-            if (!_damages.TryGetValue(obj, out OverheadDamage dm) || dm == null)
+        internal void AddDamage(uint obj, int dmg) {
+            var damageCollector = _damgeCollectUpdates.FirstOrDefault(d => d.ObjId == obj);
+
+            if (damageCollector == null) {
+                damageCollector = new DamageCollector(obj, dmg);
+                _damgeCollectUpdates.Add(damageCollector);
+            }
+            else {
+                damageCollector.AddDamage(dmg);
+            }
+
+            
+
+            /*if (!_damages.TryGetValue(obj, out OverheadDamage dm) || dm == null)
             {
                 dm = new OverheadDamage(World.Get(obj));
                 _damages[obj] = dm;
             }
 
-            dm.Add(dmg);
+            dm.Add(dmg);*/
         }
 
         public override void Clear()

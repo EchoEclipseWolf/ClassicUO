@@ -211,6 +211,10 @@ namespace ClassicUO.Game.GameObjects
             Item i = _pool.GetOne();
             i.Serial = serial;
 
+            if (serial == 0x40019A35) {
+                int bob = 1;
+            }
+
             return i;
         }
 
@@ -719,6 +723,10 @@ namespace ClassicUO.Game.GameObjects
                     LastAnimationChangeTime = Time.Ticks + Constants.CHARACTER_ANIMATION_DELAY;
                 }
             }
+        }
+
+        public override string ToString() {
+            return $"Item : {Name}  Graphic: {Graphic}  Hue: {Hue}  Serial: {Serial}";
         }
     }
 }

@@ -5,13 +5,30 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ClassicUO.Game.AiEngine.Enums;
+using ClassicUO.Game.AiEngine.Tasks;
 using ClassicUO.Game.Data;
 using ClassicUO.Game.GameObjects;
+using ClassicUO.Network;
 
 namespace ClassicUO.Game.AiEngine.Helpers
 {
     internal static class ItemsHelper
     {
+        public static async Task<Tuple<string, string>> GetItemData(Item item) {
+            for (int i = 0; i < 30; i++) {
+                if (SerialHelper.IsValid(item.Serial) && World.OPL.TryGetNameAndData(item.Serial, out string name, out string data)) {
+                    return new Tuple<string, string>(name, data);
+                }
+
+                if (SerialHelper.IsValid(item.Serial))
+                {
+                    PacketHandlers.AddMegaClilocRequest(item.Serial);
+                    await Task.Delay(50);
+                }
+            }
+            
+            return new Tuple<string, string>("", "");
+        }
         public static List<Item> FindItemsOnGround(int itemId, int color = 0)
         {
             var foundItems = World.Items.Where(i => i.Value != null && i.Value.Graphic == itemId && (i.Value.Hue == color || color == -1) && i.Value.OnGround).ToList();
@@ -19,6 +36,23 @@ namespace ClassicUO.Game.AiEngine.Helpers
             return (from item in foundItems
                     where item.Value != null
                     select item.Value).ToList();
+        }
+
+        public static List<Item> FindContainersOnGround()
+        {
+            for (int j = 0; j < 50; j++) {
+                try {
+                    var foundItems = World.Items.Where(i => i.Value != null && ContainerIds.Ids.Contains(i.Value.Graphic) && i.Value.OnGround).ToList();
+
+                    return (from item in foundItems
+                            where item.Value != null
+                            select item.Value).ToList();
+                }
+                catch (Exception) {
+                }
+            }
+
+            return new List<Item>();
         }
 
         public static async Task<List<Tuple<uint,Item>>> GetPlayerBackpackItemsById(ushort graphicId, int hue = -1) {
@@ -30,7 +64,7 @@ namespace ClassicUO.Game.AiEngine.Helpers
         public static async Task<List<Tuple<uint, Item>>> GetPlayerBackpackItems(bool searchSubContainers)
         {
             var backpack = World.Player.FindItemByLayer(Layer.Backpack);
-            return await GetContainerItems(backpack, true);
+            return await GetContainerItems(backpack, searchSubContainers);
         }
 
         public static async Task<int> GetPlayerBackpackItemCount(bool searchSubContainers = true, bool countStacks = true) {
@@ -63,14 +97,14 @@ namespace ClassicUO.Game.AiEngine.Helpers
 
         public static async Task<List<Tuple<uint, Item>>> GetContainerItems(Item container, bool searchSubContainers) {
             var list = new List<Tuple<uint, Item>>();
-            var backpack = World.Player.FindItemByLayer(Layer.Backpack);
+            var bag = World.Items.Get(container.Serial);
 
-            if (backpack != null && !backpack.IsEmpty) {
-                for (LinkedObject i = backpack.Items; i != null; i = i.Next) {
+            if (bag != null && !bag.IsEmpty) {
+                for (LinkedObject i = bag.Items; i != null; i = i.Next) {
                     Item item = (Item)i;
                     list.Add(new Tuple<uint, Item>(container.Serial, item));
 
-                    if (searchSubContainers) {
+                    if (searchSubContainers && false) {
                         await GetContainerItemsRecursive(list, item);
                     }
                 }
@@ -104,6 +138,38 @@ namespace ClassicUO.Game.AiEngine.Helpers
             }
 
             return true;
+        }
+
+        public static List<Tuple<Item, string, Layer, string>> GetEquippedItemsWithData()
+        {
+            var list = new List<Tuple<Item, string, Layer, string>>();
+
+            for (byte i = 0; i < 0x19; i++) {
+                if (i == (int) Layer.Backpack ||
+                    i == (int) Layer.Hair ||
+                    i == (int) Layer.Face) {
+                    continue;
+                }
+
+                var slot = (Layer) i;
+                var item = World.Player.FindItemByLayer((Layer) i);
+
+                if (item != null) {
+                    if (SerialHelper.IsValid(item.Serial) && World.OPL.TryGetNameAndData(item.Serial, out string name, out string data)) {
+                        list.Add(new Tuple<Item, string, Layer, string>(item, data, slot, name));
+                    }
+                    else if(SerialHelper.IsValid(item.Serial)) {
+                        PacketHandlers.AddMegaClilocRequest(item.Serial);
+                    }
+                }
+            }
+
+
+            return list;
+        }
+
+        public static bool IsEquipped(uint serial) {
+            return ItemDataUpdateTask.EquippedItems.Any(i => i.Serial == serial);
         }
     }
 }
