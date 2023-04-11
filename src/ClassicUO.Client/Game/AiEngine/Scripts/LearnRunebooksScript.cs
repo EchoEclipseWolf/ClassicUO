@@ -28,6 +28,14 @@ namespace ClassicUO.Game.AiEngine.Scripts
             _hasStartedPass = false;
         }
 
+        public override async Task<bool> Start() {
+            await base.Start();
+
+            TeleportsMemory.Instance.RuneMemories.Clear();
+
+            return true;
+        }
+
         public override async Task<bool> Pulse() {
             _hasRun = false;
             if (_hasRun) {
@@ -60,7 +68,9 @@ namespace ClassicUO.Game.AiEngine.Scripts
                     //The runebook gump should actually be closed here. Lets try 20 times to close all the ones that are open.
                     if (runebookGump != null)
                     {
-                        runebookGump.InvokeMouseCloseGumpWithRClick();
+                        await Task.Delay(500);
+                        AiCore.GumpsToClose.Push(runebookGump);
+                        await Task.Delay(500);
                         await WaitForHelper.WaitFor(() => GumpHelper.GetRunebookGump() == null, 2000);
 
                         if (GumpHelper.GetRunebookGump() == null) {
@@ -86,6 +96,7 @@ namespace ClassicUO.Game.AiEngine.Scripts
             if (_hasStartedPass && GumpHelper.GetRunebookGump()?.ServerSerial == _currentRunebookGumpSerial) {
                 var gump = GumpHelper.GetRunebookGump();
                 if (gump != null) { // it cant be null here but whatever
+                    await Task.Delay(500);
                     var text = GumpHelper.GetRunebookTextForIndex(gump, _currentIndex);
                     if (!string.IsNullOrEmpty(text) && !text.Equals("Empty", StringComparison.InvariantCultureIgnoreCase)) {
                         _currentRuneName = text;
@@ -105,6 +116,7 @@ namespace ClassicUO.Game.AiEngine.Scripts
                 _currentRunebook = runebooks.First();
                 GameActions.DoubleClick(_currentRunebook.Serial);
                 await WaitForHelper.WaitFor(() => GumpHelper.GetRunebookGump() != null, 2000);
+                await Task.Delay(500);
 
                 var foundGump = GumpHelper.GetRunebookGump();
 
@@ -144,6 +156,7 @@ namespace ClassicUO.Game.AiEngine.Scripts
             var previousMapId = World.MapIndex;
 
             gump.OnButtonClick(50 + index);
+            await Task.Delay(500);
 
             await WaitForHelper.WaitFor(() => previousLocation.Distance() > 8.0f || World.MapIndex != previousMapId, 15000);
             await Task.Delay(2500);

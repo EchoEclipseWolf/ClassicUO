@@ -17,6 +17,8 @@ namespace ClassicUO.Game.AiEngine.Tasks {
     public class SelfBandageAiTask : BaseAITask {
         private Stopwatch _bandageTimer = Stopwatch.StartNew();
         private Mobile _lastHealedPet = null;
+        private bool _hadBuff = false;
+
         public SelfBandageAiTask() : base("Self Bandage Task")
         {
         }
@@ -173,7 +175,8 @@ namespace ClassicUO.Game.AiEngine.Tasks {
             {
                 GameActions.ResponsePopupMenu(pet.Serial, index); //3 is guard, 2 is follow
                 await Task.Delay(100);
-                popup.InvokeMouseCloseGumpWithRClick();
+                AiCore.GumpsToClose.Push(popup);
+                await Task.Delay(500);
             }
             return true;
         }
@@ -185,7 +188,13 @@ namespace ClassicUO.Game.AiEngine.Tasks {
                 }
 
                 if (HasHealingBuff() || HasVetHealingBuff()) {
+                    _hadBuff = true;
                     return false;
+                }
+
+                if (_hadBuff) {
+                    _hadBuff = false;
+                    await Task.Delay(900);
                 }
 
                 if (await PulseSelfHealing()) {

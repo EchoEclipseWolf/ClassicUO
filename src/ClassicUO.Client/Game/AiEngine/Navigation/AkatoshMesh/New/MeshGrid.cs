@@ -96,7 +96,8 @@ namespace ClassicUO.AiEngine
 
             if (Points.TryGetValue(hash, out var nodes)) {
                 if (nodes.Count == 1) {
-                    if (nodes.FirstOrDefault().Distance > distance) {
+                    var nodePosition = new Point3D(nodes[0].X, nodes[0].Y, nodes[0].Z);
+                    if (nodePosition.Distance(position) > distance) {
                         return null;
                     }
                     return nodes.FirstOrDefault();

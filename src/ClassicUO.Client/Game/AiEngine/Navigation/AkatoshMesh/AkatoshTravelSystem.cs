@@ -14,6 +14,7 @@ using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Controls;
 using System.Runtime.Remoting.Metadata.W3cXsd2001;
 using System.Net;
+using ClassicUO.Game.AiEngine;
 using ClassicUO.Game.AiEngine.AiClasses;
 using ClassicUO.Game.AiEngine.Memory;
 using ClassicUO.Game.AiEngine.Helpers;
@@ -151,7 +152,7 @@ namespace ClassicUO.NavigationTravel.AkatoshMesh
             if (dungeon != null) {
                 startMoongate = await GetClosestMoongate(dungeon.MoongateLocation, World.MapIndex, false);
             } else {
-                if (startMoongate.EndPoint.Distance() > 30) {
+                if (startMoongate?.EndPoint.Distance() > 30) {
                     useNewHavenMoongate = true;
                     //startMoongate =
                     //    PublicMoongatePoints.FirstOrDefault(IsNewHavenMoongate);
@@ -167,9 +168,6 @@ namespace ClassicUO.NavigationTravel.AkatoshMesh
             var time3 = stopwatch.ElapsedMilliseconds;
             stopwatch.Restart();
 
-            if (startMoongate == null || endMoongate == null) {
-                return TravelSystemMode.Walk; // Something went wrong, this should never happen
-            }
 
             var dict = new Dictionary<TravelSystemMode, double>();
 
@@ -184,8 +182,8 @@ namespace ClassicUO.NavigationTravel.AkatoshMesh
 
             
 
-            if (startMoongate.MapIndex != endMoongate.MapIndex || startMoongate.Category != endMoongate.Category ||
-                startMoongate.Index != endMoongate.Index) {
+            if (startMoongate != null && endMoongate != null && (startMoongate.MapIndex != endMoongate.MapIndex || startMoongate.Category != endMoongate.Category ||
+                startMoongate.Index != endMoongate.Index)) {
                 var totalMoongateDistance = 0.0;
                 if (useNewHavenMoongate) {
                     totalMoongateDistance = 5.0;
@@ -310,7 +308,8 @@ namespace ClassicUO.NavigationTravel.AkatoshMesh
                 await Task.Delay(500);
                 var runebookGump = GumpHelper.GetRunebookGump();
                 if (runebookGump != null) {
-                    runebookGump.OnButtonClick(50 + bestRuneTuple.Item2.Index);
+                    AiCore.GumpsToClickButton.Push(new Tuple<Gump, int>(runebookGump, 50 + bestRuneTuple.Item2.Index));
+                    //runebookGump.OnButtonClick();
                     
                     await WaitForHelper.WaitFor(() => previousLocation.Distance() > 8.0f || World.MapIndex != previousMapId, 15000);
                     await Task.Delay(2500);

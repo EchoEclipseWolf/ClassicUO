@@ -50,7 +50,11 @@ using ClassicUO.Renderer;
 using ClassicUO.Resources;
 using ClassicUO.Utility;
 using Microsoft.Xna.Framework;
+using System.Windows;
+using System.Windows.Forms;
 using static ClassicUO.Renderer.UltimaBatcher2D;
+using Button = ClassicUO.Game.UI.Controls.Button;
+using Label = ClassicUO.Game.UI.Controls.Label;
 
 namespace ClassicUO.Game.UI.Gumps
 {
@@ -65,6 +69,7 @@ namespace ClassicUO.Game.UI.Gumps
         ADDHOUSE = 6,
         SEARCHHOUSE = 7,
         SEARCHHOUSEOPEN = 8,
+        COPYLOCATION = 9,
     }
 
     internal sealed class AIEngineOverlayGump : Gump {
@@ -75,6 +80,7 @@ namespace ClassicUO.Game.UI.Gumps
         private const string ADDHOUSE_LABEL_TEXT = "Add House";
         private const string SEARCHHOUSE_LABEL_TEXT = "Search House";
         private const string SEARCHHOUSE_OPEN_LABEL_TEXT = "Open Cont";
+        private const string COPY_POINT_LABEL_TEXT = "Copy Point";
         
         private static Point _lastPosition = new Point(-1, -1);
 
@@ -87,6 +93,7 @@ namespace ClassicUO.Game.UI.Gumps
         private readonly Checkbox _enableNavigationRecordingPathfinderCheckbox;
         private readonly Checkbox _enableNavigationCheckbox;
         private readonly Checkbox _enableNavigationMovementCheckbox;
+        private readonly Checkbox _updateContainersCheckbox;
         private readonly Combobox _scriptComboBox;
         private readonly Button _playPauseButton;
         private readonly Button _setTestingButton;
@@ -98,11 +105,13 @@ namespace ClassicUO.Game.UI.Gumps
         private readonly Label _gainedTokenLabel;
         private readonly Label _addHouseLabel;
         private readonly Label _currentTileLabel;
+        private readonly Label _copyMapPointLabel;
         private readonly StbTextBox _searchHouseTextBox;
         private readonly Label _searchHouseLabel;
         private readonly Label _searchHouseOpenLabel;
         private readonly Button _searchHouseButton;
         private readonly Button _searchHouseOpenButton;
+        private readonly Button _copyLocationButton;
         private readonly ResizePic _searchResizePic;
         public static int GainedGold = 0;
         public static int GainedTokens = 0;
@@ -344,6 +353,23 @@ namespace ClassicUO.Game.UI.Gumps
                 }
             );
 
+            Add
+            (
+                _updateContainersCheckbox = new Checkbox
+                (
+                    0x00D2,
+                    0x00D3,
+                    "Update Bags",
+                    255,
+                    1153
+                )
+                {
+                    IsChecked = AiSettings.Instance.UpdateContainers,
+                    X = 150,
+                    Y = currentY
+                }
+            );
+
             currentY += SPACING;
 
             Add
@@ -413,7 +439,7 @@ namespace ClassicUO.Game.UI.Gumps
                 }
             );
 
-            _searchHouseTextBox.SetText("Platemail Arms");
+            _searchHouseTextBox.SetText("");
 
             _searchHouseLabel = new Label(SEARCHHOUSE_LABEL_TEXT, true, textColor, font: (byte)1)
             {
@@ -446,6 +472,26 @@ namespace ClassicUO.Game.UI.Gumps
                     X = 380,
                     Y = currentY + 4,
                     ButtonAction = ButtonAction.Activate
+                }
+            );
+
+            currentY += SPACING;
+
+            Add
+            (
+                _copyLocationButton = new Button((int)AiEngineButtons.COPYLOCATION, 0x0481, 0x0483, 0x0482)
+                {
+                    X = 2,
+                    Y = currentY,
+                    ButtonAction = ButtonAction.Activate
+                }
+            );
+
+            Add
+            (
+                _copyMapPointLabel = new Label(COPY_POINT_LABEL_TEXT, true, textColor, font: (byte) 1) {
+                    X = 40,
+                    Y = currentY
                 }
             );
 
@@ -495,8 +541,12 @@ namespace ClassicUO.Game.UI.Gumps
 
                 _gainedGoldLabel.Text = $"Gained Gold: {GainedGold:N0}";
                 _gainedTokenLabel.Text = $"Gained Tokens: {GainedTokens:N0}";
-                var filePoint = Navigation.GetFilePointFromPoint(World.Player.Position.ToPoint3D());
-                _currentTileLabel.Text = $"Tile X: {filePoint.X}  Y: {filePoint.Y}";
+
+                if (World.Player != null) {
+                    var filePoint = Navigation.GetFilePointFromPoint(World.Player.Position.ToPoint3D());
+
+                    _currentTileLabel.Text = $"Tile X: {filePoint.X}  Y: {filePoint.Y}";
+                }
 
                 var selectedScriptToRun = AiCore.Instance.MainScripts.Keys.ToList()[_scriptComboBox.SelectedIndex];
 
@@ -506,6 +556,7 @@ namespace ClassicUO.Game.UI.Gumps
                                   AiSettings.Instance.NavigationTesting != _enableNavigationCheckbox.IsChecked ||
                                   AiSettings.Instance.RecordDatabase != _enableRecordDatabaseCheckbox.IsChecked ||
                                   AiSettings.Instance.SelfBuff != _enableSelfBuffCheckbox.IsChecked ||
+                                  AiSettings.Instance.UpdateContainers != _updateContainersCheckbox.IsChecked ||
                                   AiSettings.Instance.NavigationRecordingUsePathfinder != _enableNavigationRecordingPathfinderCheckbox.IsChecked ||
                                   AiSettings.Instance.ScriptToRun != selectedScriptToRun;
 
@@ -517,6 +568,7 @@ namespace ClassicUO.Game.UI.Gumps
                 AiSettings.Instance.NavigationMovement = _enableNavigationMovementCheckbox.IsChecked;
                 AiSettings.Instance.RecordDatabase = _enableRecordDatabaseCheckbox.IsChecked;
                 AiSettings.Instance.SelfBuff = _enableSelfBuffCheckbox.IsChecked;
+                AiSettings.Instance.UpdateContainers = _updateContainersCheckbox.IsChecked;
                 AiSettings.Instance.ScriptToRun = selectedScriptToRun;
 
                 if (shouldSave) {
@@ -546,6 +598,9 @@ namespace ClassicUO.Game.UI.Gumps
                 _searchResizePic.IsVisible = !IsMinimized;
                 _searchHouseOpenLabel.IsVisible = !IsMinimized;
                 _searchHouseOpenButton.IsVisible = !IsMinimized;
+                _updateContainersCheckbox.IsVisible = !IsMinimized;
+                _copyLocationButton.IsVisible = !IsMinimized;
+                _copyMapPointLabel.IsVisible = !IsMinimized;
 
 
                 WantUpdateSize = true;
@@ -652,6 +707,15 @@ namespace ClassicUO.Game.UI.Gumps
 
                 case (int) AiEngineButtons.SEARCHHOUSEOPEN: {
                     HouseMemory.Instance.OpenClosestContainer();
+                    break;
+                }
+
+                case (int) AiEngineButtons.COPYLOCATION: {
+                    var position = World.Player.Position;
+                    var mapIndex = World.MapIndex;
+                    var location = $"new MapPoint3D({position.X}, {position.Y}, {position.Z}, {mapIndex});";
+                    GameActions.MessageOverhead("Copied Point", World.Player.Serial);
+                    Clipboard.SetText(location);
                     break;
                 }
             }

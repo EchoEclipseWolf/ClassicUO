@@ -443,7 +443,7 @@ namespace ClassicUO.Game
                            start,
                            end,
                            Vector3.UnitZ,
-                           2
+                           6
                         );
 
                         break;

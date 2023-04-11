@@ -754,20 +754,20 @@ namespace ClassicUO.Game.Scenes
             World.Update();
             _animatedStaticsManager.Process();
             BoatMovingManager.Update();
-            Pathfinder.ProcessAutoWalk();
+            World.Pathfinder.ProcessAutoWalk();
             DelayedObjectClickManager.Update();
 
             if (!MoveCharacterByMouseInput() && !currentProfile.DisableArrowBtn)
             {
                 Direction dir = DirectionHelper.DirectionFromKeyboardArrows(_flags[0], _flags[2], _flags[1], _flags[3]);
 
-                if (World.InGame && !Pathfinder.AutoWalking && dir != Direction.NONE)
+                if (World.InGame && !World.Pathfinder.AutoWalking && dir != Direction.NONE)
                 {
                     World.Player.Walk(dir, currentProfile.AlwaysRun);
                 }
             }
 
-            if (_followingMode && SerialHelper.IsMobile(_followingTarget) && !Pathfinder.AutoWalking)
+            if (_followingMode && SerialHelper.IsMobile(_followingTarget) && !World.Pathfinder.AutoWalking)
             {
                 Mobile follow = World.Mobiles.Get(_followingTarget);
 
@@ -781,7 +781,7 @@ namespace ClassicUO.Game.Scenes
                     }
                     else if (distance > 3)
                     {
-                        Pathfinder.WalkTo(follow.X, follow.Y, follow.Z, 1);
+                        World.Pathfinder.WalkTo(follow.X, follow.Y, follow.Z, 1);
                     }
                 }
                 else
@@ -1277,7 +1277,7 @@ namespace ClassicUO.Game.Scenes
             {
                 _followingMode = false;
                 _followingTarget = 0;
-                Pathfinder.StopAutoWalk();
+                World.Pathfinder.StopAutoWalk();
 
                 MessageManager.HandleMessage
                 (

@@ -54,6 +54,7 @@ using ClassicUO.Utility.Logging;
 using ClassicUO.Assets;
 using ClassicUO.Game.AiEngine;
 using ClassicUO.Game.AiEngine.Memory;
+using ClassicUO.Game.AiEngine.Tasks;
 
 namespace ClassicUO.Game
 {
@@ -110,6 +111,8 @@ namespace ClassicUO.Game
 
         private static ConcurrentQueue<Vector3> _positionsToAdd = new ConcurrentQueue<Vector3>();
         private static Vector3 _lastAddedPosition = Vector3.Zero;
+
+        internal static Game.Pathfinder Pathfinder = new Game.Pathfinder();
 
         public static int MapIndex
         {
@@ -259,6 +262,11 @@ namespace ClassicUO.Game
                     if (_foundPlayer == null) {
                         _foundPlayer = Player;
                         await Task.Delay(1000);
+                    }
+
+                    if (ItemDataUpdateTask.PlayerBackpack == null) {
+                        await Task.Delay(500);
+                        continue;
                     }
 
                     await Task.Delay(1);
@@ -512,6 +520,20 @@ namespace ClassicUO.Game
                 _effectManager.Update();
                 WorldTextManager.Update();
                 WMapManager.RemoveUnupdatedWEntity();
+
+                while (AiCore.GumpsToClose.Count > 0) {
+                    if (AiCore.GumpsToClose.TryPop(out var gump)) {
+                        gump.InvokeMouseCloseGumpWithRClick();
+                    }
+                }
+
+                while (AiCore.GumpsToClickButton.Count > 0) {
+                    if (AiCore.GumpsToClickButton.TryPop(out var gumpTuple)) {
+                        var gump = gumpTuple.Item1;
+                        var buttonId = gumpTuple.Item2;
+                        gump.OnButtonClick(buttonId);
+                    }
+                }
             }
         }
 

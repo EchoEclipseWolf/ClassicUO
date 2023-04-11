@@ -27,6 +27,7 @@ namespace ClassicUO.Game.AiEngine.Memory
         public bool RecordDatabaseInvuls = true;
         public bool SelfBandageHealing = false;
         public bool SelfBuff = false;
+        public bool UpdateContainers = true;
         public string ScriptToRun = "";
         public Point3D TestingNavigationPoint = new(1015, 520, -70);
         public int TestingNavigationMapIndex = 3;

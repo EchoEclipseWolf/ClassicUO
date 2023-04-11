@@ -131,5 +131,9 @@ namespace ClassicUO.Game.UI.Controls
             base.Dispose();
             _gText.Destroy();
         }
+
+        public override string ToString() {
+            return $"UI Label: {Text}";
+        }
     }
 }

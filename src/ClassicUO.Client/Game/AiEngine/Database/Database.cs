@@ -18,16 +18,21 @@ namespace ClassicUO.DatabaseUtility
 
         public static void CreateConnection() {
             if (_connection == null) {
-                _connection = new SQLiteConnection("Data Source=database.db; Version = 3; New = True; Compress = True; ");
+                _connection = new SQLiteConnection("Data Source=C:\\UltimaOnlineSharedData\\database.db; Version = 3; New = True; Compress = True; ");
                 try {
                     _connection.Open();
                 } catch (Exception ex) {
+                    Console.WriteLine(ex.Message);
+                    Console.WriteLine("Failed to connect to database file");
                     int bob = 1;
                 }
             }
         }
 
         internal static async Task<bool> AddMobile(Mobile mobile) {
+            #if DEBUG
+            return true;
+            #endif
             if (!string.IsNullOrEmpty(mobile.Name) && AiSettings.Instance.RecordDatabase) {
                 if (LandmarksMemory.Instance.IsCloseToChampion(mobile.Position.ToPoint3D(), World.MapIndex)) {
                     return false;

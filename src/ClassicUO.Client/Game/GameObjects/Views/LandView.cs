@@ -62,29 +62,27 @@ namespace ClassicUO.Game.GameObjects
             var foundNavPoint = false;
             var isPathPoint = false;
 
-            if (AiSettings.Instance != null && (AiSettings.Instance.NavigationTesting || AiSettings.Instance.NavigationRecording) && Navigation.CurrentMesh != null && !Navigation.IsLoading) {
-                var point = new Point3D(Position.X, Position.Y, Position.Z);
-                var meshPoints = Navigation.GetNode(point, World.MapIndex, 100);
+            var point = new Point3D(Position.X, Position.Y, Position.Z);
+            var meshPoints = Navigation.GetNode(point, World.MapIndex);
 
+            if (AiSettings.Instance != null && (AiSettings.Instance.NavigationTesting || AiSettings.Instance.NavigationRecording) && Navigation.CurrentMesh != null &&
+                !Navigation.IsLoading) {
                 if (meshPoints != null) {
                     foundNavPoint = true;
                 }
+            }
 
-                if (Navigation.Path.Count > 0) {
-                    try {
-                        var pathNode = Navigation.Path.FirstOrDefault(n => n != null && n.Position.Distance(point) < 7 && (int)n.Position.X == (int)point.X && (int)n.Position.Y == (int)point.Y);
+            if (Navigation.Path.Count > 0) {
+                try {
+                    var pathNode = Navigation.Path.FirstOrDefault(n => n != null && n.Position.Distance(point) < 7 && (int)n.Position.X == (int)point.X && (int)n.Position.Y == (int)point.Y);
 
-                        if (pathNode != null) {
-                            isPathPoint = true;
-                        }
-                    }
-                    catch (Exception e) {
-                        Console.WriteLine(e);
+                    if (pathNode != null) {
+                        isPathPoint = true;
                     }
                 }
-            }
-            else {
-                int bob = 1;
+                catch (Exception e) {
+                    Console.WriteLine(e);
+                }
             }
 
             if (ProfileManager.CurrentProfile.HighlightGameObjects && SelectedObject.Object == this)

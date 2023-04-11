@@ -56,7 +56,7 @@ namespace ClassicUO.Game.AiEngine.Scripts
             var middlePoint = _currentHouse.MiddlePoint;
             var middleDistance = middlePoint.Distance();
             if (middleDistance > 50) {
-                Pathfinder.WalkTo((int) _currentContainer.Point().X, (int) _currentContainer.Point().Y, (int) _currentContainer.Point().Z, 1);
+                Navigation.GamePathFinder.WalkTo((int) _currentContainer.Point().X, (int) _currentContainer.Point().Y, (int) _currentContainer.Point().Z, 1);
                 await Task.Delay(400);
                 return true;
             }
@@ -92,7 +92,7 @@ namespace ClassicUO.Game.AiEngine.Scripts
                 return true;
             }
 
-            await _currentContainer.UpdateContents();
+            await _currentContainer.UpdateContents(true);
             var items = _currentContainer.GetItems();
 
             if (items.Count > 0) {
@@ -100,8 +100,8 @@ namespace ClassicUO.Game.AiEngine.Scripts
                 _learnedContainers.Add(_currentContainer.Serial);
                 _currentContainer = null;
 
-                containerGump.InvokeMouseCloseGumpWithRClick();
-                await Task.Delay(1000);
+                AiCore.GumpsToClose.Push(containerGump);
+                await Task.Delay(500);
                 HouseMemory.Instance.Save();
             }
 

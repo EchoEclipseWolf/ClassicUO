@@ -1,14 +1,19 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
+using ClassicUO.AiEngine;
 using ClassicUO.AiEngine.AiEngineTasks;
 using ClassicUO.Game.AiEngine.Helpers;
 using ClassicUO.Game.AiEngine.Memory;
 using ClassicUO.Game.AiEngine.Scripts;
 using ClassicUO.Game.AiEngine.Tasks;
 using ClassicUO.Game.GameObjects;
+using ClassicUO.Game.Managers;
+using ClassicUO.Game.Scenes;
+using ClassicUO.Game.UI.Controls;
 using ClassicUO.Game.UI.Gumps;
 
 namespace ClassicUO.Game.AiEngine {
@@ -18,8 +23,13 @@ namespace ClassicUO.Game.AiEngine {
         public Dictionary<string, BaseAITask> Tasks = new();
         public Dictionary<string, BaseAITask> MainScripts = new();
 
+        internal static ConcurrentStack<Gump> GumpsToClose = new ConcurrentStack<Gump>();
+        internal static ConcurrentStack<Tuple<Gump, int>> GumpsToClickButton = new ConcurrentStack<Tuple<Gump, int>>();
+
         public static bool IsScriptRunning { get; private set; }
         private static bool _needToSendOnStart = false;
+        private static bool _hasStartup = false;
+        private static bool _hasClosedGumpsStart = false;
 
         public AiCore() {
 
@@ -47,7 +57,15 @@ namespace ClassicUO.Game.AiEngine {
             var learnHouseContainersScript = new LearnHouseContainersScript();
             MainScripts[learnHouseContainersScript.Name] = learnHouseContainersScript;
 
+            var sortRelicBagsInMasterBagScript = new SortRelicBagsInMasterBagScript();
+            MainScripts[sortRelicBagsInMasterBagScript.Name] = sortRelicBagsInMasterBagScript;
+
+            var miningScript = new MiningScript();
+            MainScripts[miningScript.Name] = miningScript;
+
             IsScriptRunning = false;
+
+            Navigation.Start();
         }
 
         public async Task<bool> Loop() {
@@ -65,12 +83,14 @@ namespace ClassicUO.Game.AiEngine {
         public async Task<bool> Pulse() {
             if (World.Player == null || World.Player.Name == null || World.Player.Name.Length == 0) {
                 await Task.Delay(10);
-
+                _hasStartup = false;
                 return true;
             }
 
-            var test1 = World.MapIndex;
-            var test2 = World.Map;
+            if (!_hasStartup) {
+                _hasStartup = true;
+                await Task.Delay(6000);
+            }
 
             AiSettings.Load();
             LandmarksMemory.Load();
@@ -83,7 +103,69 @@ namespace ClassicUO.Game.AiEngine {
                 return true;
             }
 
-            var tes234t = World.Get(1073846790);
+            GameScene scene = Client.Game.GetScene<GameScene>();
+
+            if (scene != null)
+            {
+                Weather weather = scene.Weather;
+
+                if (weather.CurrentWeather != WeatherType.WT_RAIN) {
+                    weather.Generate(WeatherType.WT_RAIN, Byte.MaxValue, 50);
+                }
+            }
+
+           
+
+            if (!_hasClosedGumpsStart) {
+                try {
+                    var staffToolbarGump = GumpHelper.GetStaffToolbarGump();
+                    var chatHistoryGump = GumpHelper.GetChatHistoryGump();
+                    var messageOfTheDayGump = GumpHelper.GetMessageOfTheDayGump();
+                    var vetRewardGump = GumpHelper.GetVetRewardGump();
+
+                    var closingGump = false;
+
+                    if (staffToolbarGump != null) {
+                        GumpsToClose.Push(staffToolbarGump);
+                        closingGump = true;
+                    }
+
+                    if (chatHistoryGump != null) {
+                        GumpsToClose.Push(chatHistoryGump);
+                        closingGump = true;
+                    }
+
+                    if (messageOfTheDayGump != null) {
+                        GumpsToClose.Push(messageOfTheDayGump);
+                        closingGump = true;
+                    }
+
+                    if (vetRewardGump != null) {
+                        GumpsToClose.Push(vetRewardGump);
+                        closingGump = true;
+                    }
+
+                    if (closingGump) {
+                        await Task.Delay(2000);
+                    }
+
+                    _hasClosedGumpsStart = true;
+                }
+                catch (Exception) {
+
+                }
+            }
+
+            /* var animalTamingGump = GumpHelper.GetAnimalBODBook();
+            if (animalTamingGump != null) {
+                var entries = BODBookParser.ParseAnimalTamingBODBook(animalTamingGump);
+
+                if (entries.Count == 0) {
+                    int count = entries.Count;
+                }
+            }*/
+
+            Navigation.UpdateNeeded();
 
             await MobilesMemory.Instance.Pulse();
             HouseMemory.Instance.Update();
@@ -109,10 +191,6 @@ namespace ClassicUO.Game.AiEngine {
 
                     await script.Pulse();
                 }
-            }
-
-            if (ItemDataUpdateTask.PlayerBackpack != null) {
-                var test = ItemDataUpdateTask.PlayerBackpack.SubContainers.Where(s => s.ContainerItem != null && s.ContainerItem.Name.ToLower().Contains("relic")).ToList();
             }
 
             await Task.Delay(1);

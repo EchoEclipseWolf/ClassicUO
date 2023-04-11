@@ -1,6 +1,7 @@
 ﻿using ClassicUO.Configuration;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -44,7 +45,7 @@ namespace ClassicUO.Game.AiEngine.Memory
         }
         #endregion
 
-        public List<SingleItemMemory> Runebooks = new();
+        public ConcurrentStack<SingleItemMemory> Runebooks = new();
         public List<AiContainer> HouseContainers = new();
 
         internal void AddRunebook(Item item, uint containerSerial, ItemLocationEnum itemLocation) {
@@ -53,7 +54,7 @@ namespace ClassicUO.Game.AiEngine.Memory
             }
 
             if (Runebooks.All(r => r.Serial != item.Serial)) {
-                Runebooks.Add(new SingleItemMemory(item, containerSerial, itemLocation));
+                Runebooks.Push(new SingleItemMemory(item, containerSerial, itemLocation));
                 SaveFile(FILENAME);
             }
 

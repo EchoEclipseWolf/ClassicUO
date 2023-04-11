@@ -81,12 +81,12 @@ namespace ClassicUO.Game.Managers
             Entries.AddToBack(entry);
             EntryAdded.Raise(entry);
 
-            if (_fileWriter == null && !_writerHasException)
+            /*if (_fileWriter == null && !_writerHasException)
             {
                 CreateWriter();
             }
 
-            _fileWriter?.WriteLine($"[{timeNow:g}]  {name}: {text}");
+            _fileWriter?.WriteLine($"[{timeNow:g}]  {name}: {text}");*/
         }
 
         private void CreateWriter()

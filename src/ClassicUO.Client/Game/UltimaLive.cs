@@ -822,10 +822,8 @@ namespace ClassicUO.Game
                 {
                 }
 
-                if (_filesStaticsStream != null)
-                {
-                    for (int i = _filesStaticsStream.Length - 1; i >= 0; --i)
-                    {
+                if (_filesStaticsStream != null) {
+                    for (int i = _filesStaticsStream.Length - 1; i >= 0; --i) {
                         _filesStaticsStream[i]?.Dispose();
                     }
 

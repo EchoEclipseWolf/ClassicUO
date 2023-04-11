@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using ClassicUO.Game.AiEngine.AiClasses;
 using ClassicUO.Game.AiEngine.Enums;
 using ClassicUO.Game.AiEngine.Tasks;
 using ClassicUO.Game.Data;
@@ -55,10 +56,26 @@ namespace ClassicUO.Game.AiEngine.Helpers
             return new List<Item>();
         }
 
-        public static async Task<List<Tuple<uint,Item>>> GetPlayerBackpackItemsById(ushort graphicId, int hue = -1) {
-            var items = await GetPlayerBackpackItems(true);
+        public static async Task<List<AIItem>> GetPlayerBackpackItemsById(bool recursive, ushort graphicId, int hue = -1) {
+            var items = new List<AIItem>();
 
-            return items.Where(item => item.Item2.Graphic == graphicId && (hue == -1 || item.Item2.Hue == hue)).ToList();
+            if (ItemDataUpdateTask.PlayerBackpack == null) {
+                return items;
+            }
+
+            await ItemDataUpdateTask.PlayerBackpack.UpdateContents(recursive);
+            var backpackItems = ItemDataUpdateTask.PlayerBackpack.GetItems();
+
+            foreach (var item in backpackItems.Where(i => i.Item != null)) {
+                if (item.Item.Graphic == graphicId && (hue == -1 || item.Item.Hue == hue)) {
+                    items.Add(item);
+                }
+            }
+
+            //var items = await GetPlayerBackpackItems(true);
+
+            //return items.Where(item => item.Item2.Graphic == graphicId && (hue == -1 || item.Item2.Hue == hue)).ToList();
+            return items;
         }
 
         public static async Task<List<Tuple<uint, Item>>> GetPlayerBackpackItems(bool searchSubContainers)
@@ -85,12 +102,18 @@ namespace ClassicUO.Game.AiEngine.Helpers
         }
 
         public static async Task<Item> FindItemBySerial(uint serial, uint containerSerial) {
-            if(World.Items.TryGetValue(containerSerial, out var container)) {
-                var items = await GetContainerItems(container, false);
+            var aiContainer = AiContainer.GetContainer(containerSerial);
+            var playerBackpack = ItemDataUpdateTask.PlayerBackpack;
+            if (aiContainer != null) {
+                await aiContainer.UpdateContents(true);
+            }
 
-                return (from item in items
-                        where item.Item2 != null && item.Item2.Serial == serial
-                        select item.Item2).FirstOrDefault();
+            if(aiContainer != null && aiContainer.ContainerItem != null) {
+                await aiContainer.UpdateContents(false);
+                
+                var aiIitem = aiContainer.GetItems().FirstOrDefault(a => a.Item != null && a.Item.Serial == serial);
+
+                return aiIitem?.Item;
             }
             return null;
         }

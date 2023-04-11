@@ -5,8 +5,8 @@
     <ApplicationIcon>cuoicon.ico</ApplicationIcon>
     <AssemblyName>ClassicUO</AssemblyName>
     <RootNamespace>ClassicUO</RootNamespace>
-    <Configurations>Debug;Release;DebugLive</Configurations>
-    <BaseOutputPath>C:\ImmortalClassicUO</BaseOutputPath>
+    <Configurations>Debug;Release;DebugLive;DebugStaff</Configurations>
+    <BaseOutputPath>C:\EchoClassicUO\bin</BaseOutputPath>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(IS_DEV_BUILD)' == 'true'">
@@ -19,6 +19,12 @@
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugLive|x64'">
     <Optimize>False</Optimize>
+    <DefineConstants>$(DefineConstants);LIVE</DefineConstants>
+  </PropertyGroup>
+
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='DebugStaff|x64'">
+    <Optimize>False</Optimize>
+    <DefineConstants>$(DefineConstants);LIVE</DefineConstants>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
@@ -108,6 +114,12 @@
   <ItemGroup>
     <Reference Include="cuoapi">
       <HintPath>..\..\external\cuoapi\cuoapi.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Windows">
+      <HintPath>..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2\System.Windows.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Windows.Forms">
+      <HintPath>..\..\..\Program Files (x86)\Reference Assemblies\Microsoft\Framework\.NETFramework\v4.7.2\System.Windows.Forms.dll</HintPath>
     </Reference>
   </ItemGroup>
 

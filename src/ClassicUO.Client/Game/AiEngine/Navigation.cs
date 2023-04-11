@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
@@ -7,6 +8,7 @@ using System.IO;
 using System.Linq;
 using System.Runtime.Remoting.Metadata.W3cXsd2001;
 using System.Threading.Tasks;
+using System.Xml.Linq;
 using AkatoshQuester.Helpers.Cartography;
 using AkatoshQuester.Helpers.LightGeometry;
 using AkatoshQuester.Helpers.Nodes;
@@ -40,6 +42,20 @@ namespace ClassicUO.AiEngine
 
         private static List<Point2D> LoadedNavigationFiles = new List<Point2D>();
 
+        private static readonly ConcurrentStack<Tuple<Point3D, int>> PathfindingOneList = new();
+        private static readonly ConcurrentStack<Tuple<Point3D, int>> PathfindingTwoList = new();
+        private static readonly ConcurrentStack<Tuple<Point3D, int>> PathfindingThreeList = new();
+        private static readonly ConcurrentStack<Tuple<Point3D, int>> PathfindingFourList = new();
+        private static readonly ConcurrentStack<Tuple<Point3D, int>> PathfindingFiveList = new();
+        private static readonly ConcurrentStack<Tuple<Point3D, int>> PathfindingSixList = new();
+        private static readonly ConcurrentStack<Tuple<Point3D, int>> PathfindingSevenList = new();
+        private static readonly ConcurrentStack<Tuple<Point3D, int>> PathfindingEightList = new();
+        private static readonly ConcurrentStack<Tuple<Point3D, int>> PathfindingNineList = new();
+        private static readonly ConcurrentStack<Tuple<Point3D, int>> PathfindingTenList = new();
+        private static readonly List<Game.Pathfinder> ThreadedPathfinders = new();
+        private static readonly ConcurrentStack<Point3D> _foundNavigationPointsToAdd = new();
+        private static readonly ConcurrentStack<Point3D> _searchedPoints = new();
+
         public static List<Node> Path = new List<Node>();
 
         public static float SearchForNeighboursDistance => 1F;
@@ -48,6 +64,8 @@ namespace ClassicUO.AiEngine
         public static MeshGraph CurrentMesh { get; set; }
         public static bool IsLoading = true;
         public static bool IsLoadingFilePoint;
+
+        internal static Game.Pathfinder GamePathFinder = new Game.Pathfinder();
 
         public static bool IsNavigationBusy {
             get { return MapUpdating || CurrentMesh == null || World.Player == null; }
@@ -78,6 +96,83 @@ namespace ClassicUO.AiEngine
         public static Graphics MapGraphic;
         public static Bitmap MapBitmap;
 
+        public static void Start() {
+            for (int i = 0; i < 15; i++) {
+                ThreadedPathfinders.Add(new Game.Pathfinder());
+            }
+
+            Task.Run
+            (
+                async () => {
+                    await PathfindingThreadOne();
+                }
+            );
+
+            Task.Run
+            (
+                async () => {
+                    await PathfindingThreadTwo();
+                }
+            );
+
+            Task.Run
+            (
+                async () => {
+                    await PathfindingThreadThree();
+                }
+            );
+
+            Task.Run
+            (
+                async () => {
+                    await PathfindingThreadFour();
+                }
+            );
+
+            Task.Run
+            (
+                async () => {
+                    await PathfindingThreadFive();
+                }
+            );
+
+            Task.Run
+            (
+                async () => {
+                    await PathfindingThreadSix();
+                }
+            );
+
+            Task.Run
+            (
+                async () => {
+                    await PathfindingThreadSeven();
+                }
+            );
+
+            Task.Run
+            (
+                async () => {
+                    await PathfindingThreadEight();
+                }
+            );
+
+            Task.Run
+            (
+                async () => {
+                    await PathfindingThreadNine();
+                }
+            );
+
+            Task.Run
+            (
+                async () => {
+                    await PathfindingThreadTen();
+                }
+            );
+
+        }
+
         public static void SaveMapGraphic() {
             MapGraphic.Dispose();
             MapBitmap.Save("Rendered.png", ImageFormat.Png);
@@ -105,7 +200,7 @@ namespace ClassicUO.AiEngine
             MapUpdating = true;
             var mapName = MobileCache.MapNameFromIndex(World.MapIndex);
             _loadedMapIndex = World.MapIndex;
-            //GameActions.MessageOverhead("Loading current navigation map", World.Player.Serial);
+            Console.WriteLine($"[Navigation]: Loading Map {mapName}");
 
             if (File.Exists(GetMasterSavePath)) {
                 using (var stream = new FileStream(GetMasterSavePath, FileMode.Open)) {
@@ -126,96 +221,8 @@ namespace ClassicUO.AiEngine
             }
 
             MapGraphic = Graphics.FromImage(MapBitmap);
-
-            /* var fileList = Directory.GetFiles(Profile.ProfilePath).ToList();
-             foreach (var filePath in fileList) {
-                 if (filePath.Contains($"{MobileCache.MapNameFromIndex(World.MapIndex)}_") && !filePath.Contains("aster")) {
-                     using (var stream = new FileStream(filePath, FileMode.Open)) {
-                         using (var reader = new BinaryReader(stream)) {
-                             var count = reader.ReadInt32();
-                             for (int i = 0; i < count; i++) {
-                                 try {
-                                     var type = (AkatoshNodeType)reader.ReadInt32();
-                                     Node node = null;
-
-                                     switch (type) {
-                                         case AkatoshNodeType.Ground: {
-                                             node = new AkatoshGroundNode(reader);
-                                             break;
-                                         }
-                                         case AkatoshNodeType.Runebook: {
-                                             node = new AkatoshRunebookNode(reader);
-                                             break;
-                                         }
-                                         case AkatoshNodeType.PublicMoongate: {
-                                             node = new AkatoshMoongateNode(reader);
-                                             break;
-                                         }
-                                         case AkatoshNodeType.Teleport: {
-                                             node = new AkatoshTeleporterNode(reader);
-                                             break;
-                                         }
-                                     }
-
-                                     //var node = new Node(reader);
-                                     if (node == null) {
-                                         continue;
-                                     }
-
-                                     CurrentMesh.NodesById[node.Id] = node;
-                                 } catch (Exception e) {
-                                     int bob = 1;
-                                 }
-                             }
-                         }
-                     }
-                 }
-             }*/
-
-
-            /*foreach (var node in CurrentMesh.NodesById.Values)
-            {
-                if (node.Passable) {
-                    g.DrawRectangle(new Pen(Color.FromArgb(50, 0, 200, 200), 0), (int) node.X, (int) node.Y, 1, 1);
-                } else {
-                    g.DrawRectangle(new Pen(Color.Red, 0), (int)node.X, (int)node.Y, 1, 1);
-                }
-
-                //g.DrawImage(pin, new Point((int)(x - (pin.Width / 2.0f)), (int)(y - (pin.Height / 2.0f))));
-            }*/
-
-            //
-
-
-            /*foreach (var nodePair in CurrentMesh.NodesById) {
-                nodePair.Value.UpdateLinked();
-            }
-
-            var dict = new Dictionary<Point2D, List<Node>>();
-            foreach (var node in CurrentMesh.NodesById.Values) {
-                var point = GetFilePointFromPoint(
-                    new Point3D(node.Position.X, node.Position.Y, node.Position.Z));
-                if (!dict.ContainsKey(point)) {
-                    dict[point] = new List<Node>();
-                }
-
-                dict[point].Add(node);
-            }
-
-            foreach (var pair in dict) {
-                var filePoint = pair.Key;
-
-                using (FileStream stream = new FileStream(GetSubSavePath(filePoint), FileMode.Create)) {
-                    using (BinaryWriter writer = new BinaryWriter(stream)) {
-                        writer.Write(pair.Value.Count);
-                        foreach (var node in pair.Value) {
-                            node.Save(writer);
-                        }
-                    }
-                }
-            }*/
-
             Clear();
+            _searchedPoints.Clear();
 
 
 
@@ -453,6 +460,139 @@ namespace ClassicUO.AiEngine
             return true;
         }
 
+        internal static async Task<bool> PathfindToBase(ConcurrentStack<Tuple<Point3D, int>> list, Game.Pathfinder pathfinder, string finishedText) {
+            var started = false;
+            var stopwatch = Stopwatch.StartNew();
+            var count = 0;
+
+            try {
+                while (!list.IsEmpty) {
+                    started = true;
+                    ++count;
+                    if (list.TryPop(out var tuple)) {
+                        var point = tuple.Item1;
+
+                        if (_searchedPoints.Any(a => Equals(a, point))) {
+                            continue;
+                        }
+
+                        _searchedPoints.Push(point);
+                            
+
+                        if (GetNode(point, World.MapIndex) != null) {
+                            continue;
+                        }
+
+                        var path = pathfinder.CanWalkTo((int) point.X, (int) point.Y, (int) (point.Z), 0, out var pathSize);
+
+                        if (pathSize > 0) {
+                            for (int i = 0; i < pathSize; i++) {
+                                var node = path[i];
+
+                                if (node == null)
+                                    continue;
+
+                                var newPoint = new Point3D(node.X, node.Y, node.Z);
+
+                                if (_foundNavigationPointsToAdd.All(a => !Equals(a, newPoint))) {
+                                    _foundNavigationPointsToAdd.Push(newPoint);
+                                }
+                            }
+                        }
+                    }
+
+                }
+            }
+            catch (Exception e) {
+                Console.WriteLine(e);
+            }
+
+            if (started) {
+                Console.WriteLine($"{finishedText} Finised in {stopwatch.ElapsedMilliseconds} ms with {count} processed");
+            }
+
+            return true;
+        }
+
+        internal static async Task<bool> PathfindingThreadOne() {
+            while (true) {
+                await PathfindToBase(PathfindingOneList, ThreadedPathfinders[0], "PathfindingOne");
+                await Task.Delay(1);
+            }
+        }
+
+        internal static async Task<bool> PathfindingThreadTwo() {
+            while (true) {
+                await PathfindToBase(PathfindingTwoList, ThreadedPathfinders[1], "PathfindingTwo");
+                await Task.Delay(1);
+            }
+        }
+
+        internal static async Task<bool> PathfindingThreadThree() {
+            while (true) {
+                await PathfindToBase(PathfindingThreeList, ThreadedPathfinders[2], "PathfindingThree");
+                await Task.Delay(1);
+            }
+        }
+
+        internal static async Task<bool> PathfindingThreadFour() {
+            while (true) {
+                await PathfindToBase(PathfindingFourList, ThreadedPathfinders[3], "PathfindingFour");
+                await Task.Delay(1);
+            }
+        }
+
+        internal static async Task<bool> PathfindingThreadFive() {
+            while (true) {
+                await PathfindToBase(PathfindingFiveList, ThreadedPathfinders[4], "PathfindingFive");
+                await Task.Delay(1);
+            }
+        }
+
+        internal static async Task<bool> PathfindingThreadSix() {
+            while (true) {
+                await PathfindToBase(PathfindingSixList, ThreadedPathfinders[5], "PathfindingSix");
+                await Task.Delay(1);
+            }
+        }
+
+        internal static async Task<bool> PathfindingThreadSeven() {
+            while (true) {
+                await PathfindToBase(PathfindingSevenList, ThreadedPathfinders[6], "PathfindingSeven");
+                await Task.Delay(1);
+            }
+        }
+
+        internal static async Task<bool> PathfindingThreadEight() {
+            while (true) {
+                await PathfindToBase(PathfindingEightList, ThreadedPathfinders[7], "PathfindingEight");
+                await Task.Delay(1);
+            }
+        }
+
+        internal static async Task<bool> PathfindingThreadNine() {
+            while (true) {
+                await PathfindToBase(PathfindingNineList, ThreadedPathfinders[8], "PathfindingNine");
+                await Task.Delay(1);
+            }
+        }
+
+        internal static async Task<bool> PathfindingThreadTen() {
+            while (true) {
+                await PathfindToBase(PathfindingTenList, ThreadedPathfinders[9], "PathfindingTen");
+                await Task.Delay(1);
+            }
+        }
+
+        internal static void UpdateNeeded() {
+            while (!_foundNavigationPointsToAdd.IsEmpty) {
+                if (_foundNavigationPointsToAdd.TryPop(out var point)) {
+                    CurrentMesh.AddAndConnect(point, World.MapIndex, 6);
+                    NavigationNeedsSaving = true;
+                }
+            }
+        }
+
         internal static async Task<bool> AddWalkableTile(Vector3 point) {
             if (!AiSettings.Instance.NavigationRecording) {
                 return true;
@@ -467,15 +607,36 @@ namespace ClassicUO.AiEngine
                 return true;
             }
 
+            var stopwatch = Stopwatch.StartNew();
+            var foundNewNodes = false;
+            var listOfNodesToFind = new List<Tuple<Point3D, int>>();
             if (AiSettings.Instance.NavigationRecordingUsePathfinder) {
+
+                #if DEBUG
+                const int size = 18;
+                #else
+                const int size = 25;
+                #endif
+
                 //for (int z = -10; z < 10; z++) {
-                for (int y = -16; y < 16; y++) {
+                for (int y = -size; y < size; y++) {
+                    for (int x = -size; x < size; x++) {
+                        if (GetNode(new Point3D(point.X + x, point.Y + y, point.Z), World.MapIndex) != null) {
+                            continue;
+                        }
+
+                        listOfNodesToFind.Add(new Tuple<Point3D, int>(new Point3D(point.X + x, point.Y + y, point.Z), World.MapIndex));
+                        foundNewNodes = true;
+                    }
+                }
+
+                /*for (int y = -16; y < 16; y++) {
                     for (int x = -16; x < 16; x++) {
                         if (GetNode(new Point3D(point.X + x, point.Y + y, point.Z), World.MapIndex) != null) {
                             continue;
                         }
 
-                        var path = Game.Pathfinder.CanWalkTo((int) (point.X + x), (int) (point.Y + y), (int) (point.Z), 0, out var pathSize);
+                        var path = GamePathFinder.CanWalkTo((int) (point.X + x), (int) (point.Y + y), (int) (point.Z), 0, out var pathSize);
 
                         if (pathSize > 0) {
                             for (int i = 0; i < pathSize; i++) {
@@ -484,12 +645,79 @@ namespace ClassicUO.AiEngine
                                 if (node == null)
                                     continue;
 
+                                listOfNodesToAdd.Add(new Tuple<Point3D, int>());
                                 CurrentMesh.AddAndConnect(new Point3D(node.X, node.Y, node.Z), World.MapIndex, 6);
                                 NavigationNeedsSaving = true;
+                                foundNewNodes = true;
                             }
                         }
                     }
+                }*/
+            }
+
+            int currentThread = 1;
+            foreach (var tuple in listOfNodesToFind) {
+                switch (currentThread) {
+                    case 1: {
+                        PathfindingOneList.Push(tuple);
+                        break;
+                    }
+
+                    case 2: {
+                        PathfindingTwoList.Push(tuple);
+                        break;
+                    }
+
+                    case 3: {
+                        PathfindingThreeList.Push(tuple);
+                        break;
+                    }
+
+                    case 4: {
+                        PathfindingFourList.Push(tuple);
+                        break;
+                    }
+
+                    case 5: {
+                        PathfindingFiveList.Push(tuple);
+                        break;
+                    }
+
+                    case 6: {
+                        PathfindingSixList.Push(tuple);
+                        break;
+                    }
+
+                    case 7: {
+                        PathfindingSevenList.Push(tuple);
+                        break;
+                    }
+
+                    case 8: {
+                        PathfindingEightList.Push(tuple);
+                        break;
+                    }
+
+                    case 9: {
+                        PathfindingNineList.Push(tuple);
+                        break;
+                    }
+
+                    case 10: {
+                        PathfindingTenList.Push(tuple);
+                        break;
+                    }
                 }
+                
+                ++currentThread;
+
+                if (currentThread > 10) {
+                    currentThread = 1;
+                }
+            }
+
+            if (foundNewNodes) {
+                Console.WriteLine($"Parsed New Nodes in : {listOfNodesToFind.Count}");
             }
 
             CurrentMesh.AddAndConnect(
@@ -501,6 +729,10 @@ namespace ClassicUO.AiEngine
         }
 
         public static Node GetNode(Point3D from, int mapIndex, int distance = 10) {
+            if (CurrentMesh == null) {
+                return null;
+            }
+
             var meshGrid = CurrentMesh.GetGridByPosition(from, mapIndex);
             var node = meshGrid.GetNodeByPosition(from, distance);
             if (node != null) 
@@ -567,15 +799,19 @@ namespace ClassicUO.AiEngine
                 var stopwatch = Stopwatch.StartNew();
 
                 if (useTravelSystem && AiSettings.Instance.NavigationMovement) {
-                    var travelMethod = await TravelSystem.TravelSystemToUse(point, endMapIndex);
-                    if (travelMethod != AkatoshTravelSystem.TravelSystemMode.Walk) {
-                        _previousX = point.X;
-                        _previousY = point.Y;
-                        _previousZ = point.Z;
-                        _previousMapIndex = endMapIndex;
+                    if (endMapIndex != World.MapIndex || point.Distance() > 50) {
+                        var travelMethod = await TravelSystem.TravelSystemToUse(point, endMapIndex);
 
-                        await TravelSystem.NavigateTo(travelMethod, point, endMapIndex);
-                        return true;
+                        if (travelMethod != AkatoshTravelSystem.TravelSystemMode.Walk) {
+                            _previousX = point.X;
+                            _previousY = point.Y;
+                            _previousZ = point.Z;
+                            _previousMapIndex = endMapIndex;
+
+                            await TravelSystem.NavigateTo(travelMethod, point, endMapIndex);
+
+                            return true;
+                        }
                     }
                 }
 
@@ -622,7 +858,7 @@ namespace ClassicUO.AiEngine
 
                 var newPath = Pathfinder.FindPath(startingNode, endingNode, 500000, saveToCache);
                 if (newPath.Count == 0) {
-                    GameActions.Print($"[Navigation]: Failed to find path");
+                    GameActions.Print($"[Navigation]: Failed to find path to {endingNode}");
                     await Task.Delay(1000);
                     return false;
                 }
@@ -648,7 +884,7 @@ namespace ClassicUO.AiEngine
             return true;
         }
 
-        public static async Task<List<Node>> GetPath(Point3D start, int startMapIndex, Point3D end, int endMapIndex, int maxSearch = 10000) {
+        public static async Task<List<Node>> GetPath(Point3D start, int startMapIndex, Point3D end, int endMapIndex, int maxSearch = 10000, bool allowNeighborsEnd = true) {
             var list = new List<Node>();
 
             LoadGridForPoint(new Point3D(start.X, start.Y, start.Z), startMapIndex);
@@ -667,6 +903,13 @@ namespace ClassicUO.AiEngine
             }
 
             var endingNode = GetNode(new Point3D(end.X, end.Y, end.Z), endMapIndex);
+            if (endingNode == null && allowNeighborsEnd) {
+                List<Node> pointsInRangeExisting =
+                    CurrentMesh.NodesWithinRange(new Point3D(end.X, end.Y, end.Z), endMapIndex, Navigation.SearchForNeighboursDistance).OrderBy(n => n.Distance).ToList();
+
+                endingNode = pointsInRangeExisting.FirstOrDefault();
+            }
+
             if (endingNode == null) {
                 //GameActions.Print($"[Navigation]: False End.");
                 return list;

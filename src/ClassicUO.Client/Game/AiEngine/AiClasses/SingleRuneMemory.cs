@@ -35,5 +35,9 @@ namespace ClassicUO.Game.AiEngine.AiClasses
             MapIndex = endMapIndex;
             RuneName = runeName;
         }
+
+        public override string ToString() {
+            return $"RuneName: {RuneName}  MapIndex: {MapIndex}  Point: {Location}";
+        }
     }
 }

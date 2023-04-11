@@ -39,6 +39,14 @@ namespace ClassicUO.Game.AiEngine.AiClasses
         public bool Blessed;
         public bool MageArmor;
         public bool NightSight;
+        public bool GargoylesOnly;
+        public bool Cursed;
+        public bool Prized;
+        public bool AncientLegendary;
+        public bool FullSockets;
+        public bool IsTreasureChest;
+        public bool IsTreasureChestCompleted;
+        public int MaximumSocketsAllowed;
         public Layer Slot;
         public string Data;
         public int HitChanceIncrease;
@@ -119,6 +127,7 @@ namespace ClassicUO.Game.AiEngine.AiClasses
         public int PoisonResonance;
         public int EnergyResonance;
         public int KineticResonance;
+        public int CastingFocus;
 
         //Regen / Buff Stats
         public int IntBonus;
@@ -159,6 +168,21 @@ namespace ClassicUO.Game.AiEngine.AiClasses
         public int BushidoBoost;
         public int HealingBoost;
         public int ParryingBoost;
+        public int MageryBoost;
+        public int EvaluateIntelligenceBoost;
+        public int VeterinaryBoost;
+        public int ProvocationBoost;
+        public int DiscordanceBoost;
+        public int SpiritSpeakBoost;
+        public int HidingBoost;
+        public int NinjitsuBoost;
+        public int StealthBoost;
+        public int MaceFightingBoost;
+        public int TrackingBoost;
+        public int SwordsmanshipBoost;
+        public int StealingBoost;
+        public int SnoopingBoost;
+
 
         internal AIItem() {
 
@@ -199,6 +223,14 @@ namespace ClassicUO.Game.AiEngine.AiClasses
             Blessed = false;
             MageArmor = false;
             NightSight = false;
+            GargoylesOnly = false;
+            Cursed = false;
+            Prized = false;
+            AncientLegendary = false;
+            FullSockets = false;
+            IsTreasureChest = false;
+            IsTreasureChestCompleted = false;
+            MaximumSocketsAllowed = 0;
             Slot = 0;
             Data = "";
             HitChanceIncrease = 0;
@@ -264,6 +296,7 @@ namespace ClassicUO.Game.AiEngine.AiClasses
             PoisonResonance = 0;
             EnergyResonance = 0;
             KineticResonance = 0;
+            CastingFocus = 0;
             IntBonus = 0;
             StrBonus = 0;
             DexBonus = 0;
@@ -296,6 +329,20 @@ namespace ClassicUO.Game.AiEngine.AiClasses
             BushidoBoost = 0;
             HealingBoost = 0;
             ParryingBoost = 0;
+            MageryBoost = 0;
+            EvaluateIntelligenceBoost = 0;
+            VeterinaryBoost = 0;
+            ProvocationBoost = 0;
+            DiscordanceBoost = 0;
+            SpiritSpeakBoost = 0;
+            HidingBoost = 0;
+            NinjitsuBoost = 0;
+            StealthBoost = 0;
+            MaceFightingBoost = 0;
+            TrackingBoost = 0;
+            SwordsmanshipBoost = 0;
+            StealingBoost = 0;
+            SnoopingBoost = 0;
         }
 
         private void ParseData(Item item, string data, Layer slot, string name) {
@@ -304,9 +351,12 @@ namespace ClassicUO.Game.AiEngine.AiClasses
             Slot = slot;
             Name = name;
 
-            if (string.IsNullOrEmpty(Name))
-            {
+            if (string.IsNullOrEmpty(Name)) {
                 Name = item.Name;
+            }
+
+            if (name.ToLower().Contains("may the bow")) {
+                int foundbow = 1;
             }
 
             var setMatch = SetRegex.Match(data);
@@ -315,720 +365,847 @@ namespace ClassicUO.Game.AiEngine.AiClasses
                 Data = Data.Replace(setMatch.Value, "");
             }
 
-            if (!string.IsNullOrEmpty(Data))
-            {
+            if (!string.IsNullOrEmpty(Data)) {
                 var split = Data.Split('\n').ToList();
                 split.RemoveAt(0); // Removes the name
 
-                if (split.Count > 0)
-                {
-                    for (int i = 0; i < 2; i++) {
-                        var exceptionalString = FindBy("Exceptional", split);
-                        Exceptional = !string.IsNullOrEmpty(exceptionalString);
+                if (split.Count > 0) {
+                    var exceptionalString = FindBy("Exceptional", split);
+                    Exceptional = !string.IsNullOrEmpty(exceptionalString);
 
-                        var spellChannelingString = FindBy("Spell Channeling", split);
-                        SpellChanneling = !string.IsNullOrEmpty(spellChannelingString);
+                    var spellChannelingString = FindBy("Spell Channeling", split);
+                    SpellChanneling = !string.IsNullOrEmpty(spellChannelingString);
 
-                        var blessedString = FindBy("Blessed", split);
-                        Blessed = !string.IsNullOrEmpty(blessedString);
+                    var blessedString = FindBy("Blessed", split);
+                    Blessed = !string.IsNullOrEmpty(blessedString);
 
-                        var mageArmorString = FindBy("Mage Armor", split);
-                        MageArmor = !string.IsNullOrEmpty(mageArmorString);
+                    var mageArmorString = FindBy("Mage Armor", split);
+                    MageArmor = !string.IsNullOrEmpty(mageArmorString);
 
-                        var nightSightString = FindBy("Night Sight", split);
-                        NightSight = !string.IsNullOrEmpty(nightSightString);
+                    var nightSightString = FindBy("Night Sight", split);
+                    NightSight = !string.IsNullOrEmpty(nightSightString);
 
-                        var weightString = FindBy("Weight:", split);
+                    GargoylesOnly = !string.IsNullOrEmpty(FindBy("Gargoyles Only", split));
+                    Cursed = !string.IsNullOrEmpty(FindBy("Cursed", split));
+                    Prized = !string.IsNullOrEmpty(FindBy("Prized", split));
+                    AncientLegendary = !string.IsNullOrEmpty(FindBy("<BaseFont Color=#FF0000>[Ancient Legendary", split));
+                    FullSockets = !string.IsNullOrEmpty(FindBy("Cannot Be Socketed Any Further.", split));
+                    IsTreasureChest = !string.IsNullOrEmpty(FindBy("For Somewhere In", split));
+                    IsTreasureChestCompleted = !string.IsNullOrEmpty(FindBy("Completed By", split));
 
-                        if (!string.IsNullOrEmpty(weightString)) {
-                            Weight = AIDataParser.ParseInt(weightString);
-                        }
-                        else {
-                            Weight = 0;
-                        }
 
-                        var weaponSpeedString = FindBy("Weapon Speed", split);
+                    var weightString = FindBy("Weight:", split);
 
-                        if (!string.IsNullOrEmpty(weaponSpeedString)) {
-                            WeaponSpeed = AIDataParser.ParseFloat(weaponSpeedString);
-                        }
-                        else {
-                            WeaponSpeed = 0;
-                        }
+                    if (!string.IsNullOrEmpty(weightString)) {
+                        Weight = AIDataParser.ParseInt(weightString);
+                    }
+                    else {
+                        Weight = 0;
+                    }
 
-                        var rangeString = FindBy("Range", split);
+                    var weaponSpeedString = FindBy("Weapon Speed", split);
 
-                        if (!string.IsNullOrEmpty(rangeString)) {
-                            Range = AIDataParser.ParseInt(rangeString);
-                        }
-                        else {
-                            Range = 1;
-                        }
+                    if (!string.IsNullOrEmpty(weaponSpeedString)) {
+                        WeaponSpeed = AIDataParser.ParseFloat(weaponSpeedString);
+                    }
+                    else {
+                        WeaponSpeed = 0;
+                    }
 
-                        var durabilityLineString = FindByRegex(DurabilityRegex, split);
-                        if (!string.IsNullOrEmpty(durabilityLineString)) {
-                            var regex = new Regex(DurabilityRegex);
-                            var match = regex.Match(durabilityLineString);
+                    var rangeString = FindBy("Range", split);
 
-                            if (match.Success && match.Groups.Count > 2) {
-                                var durabilityString = match.Groups[1].Value;
-                                var maxDurabilityString = match.Groups[2].Value;
+                    if (!string.IsNullOrEmpty(rangeString)) {
+                        Range = AIDataParser.ParseInt(rangeString);
+                    }
+                    else {
+                        Range = 1;
+                    }
 
-                                if (int.TryParse(durabilityString, out var durability) && int.TryParse(maxDurabilityString, out var maxDurability)) {
-                                    Durability = durability;
-                                    MaxDurability = maxDurability;
-                                }
-                                else {
-                                    Durability = 0;
-                                    MaxDurability = 0;
-                                }
+                    var durabilityLineString = FindByRegex(DurabilityRegex, split);
+
+                    if (!string.IsNullOrEmpty(durabilityLineString)) {
+                        var regex = new Regex(DurabilityRegex);
+                        var match = regex.Match(durabilityLineString);
+
+                        if (match.Success && match.Groups.Count > 2) {
+                            var durabilityString = match.Groups[1].Value;
+                            var maxDurabilityString = match.Groups[2].Value;
+
+                            if (int.TryParse(durabilityString, out var durability) && int.TryParse(maxDurabilityString, out var maxDurability)) {
+                                Durability = durability;
+                                MaxDurability = maxDurability;
                             }
-                        }
-
-                        var weaponDamageString = FindBy("Weapon Damage ", split);
-                        if (!string.IsNullOrEmpty(weaponDamageString)) {
-                            
-                            var regex = new Regex(WeaponDamageRegex);
-                            var match = regex.Match(weaponDamageString);
-
-                            if (match.Success && match.Groups.Count > 2) {
-                                var minString = match.Groups[1].Value;
-                                var maxString = match.Groups[2].Value;
-
-                                if (int.TryParse(minString, out var min) && int.TryParse(maxString, out var max)) {
-                                    WeaponDamageMin = min;
-                                    WeaponDamageMax = max;
-                                }
-                                else {
-                                    WeaponDamageMin = 0;
-                                    WeaponDamageMax = 0;
-                                }
+                            else {
+                                Durability = 0;
+                                MaxDurability = 0;
                             }
-                        }
-
-                        var bagContentsString = FindBy("Contents: ", split);
-                        if (!string.IsNullOrEmpty(bagContentsString)) {
-                            
-                            var regex = new Regex(BagContentsRegex);
-                            var match = regex.Match(bagContentsString);
-
-                            if (match.Success && match.Groups.Count > 4) {
-                                var minString = match.Groups[1].Value;
-                                var maxString = match.Groups[2].Value;
-                                var minStonesString = match.Groups[3].Value;
-                                var maxStonesString = match.Groups[4].Value;
-
-                                if (int.TryParse(minString, out var min) && int.TryParse(maxString, out var max) && int.TryParse(minStonesString, out var currentStones) && int.TryParse(maxStonesString, out var maxStones)) {
-                                    ItemCountCurrent = min;
-                                    ItemCountMax = max;
-                                    StoneCountCurrent = currentStones;
-                                    StoneCountMax = maxStones;
-                                }
-                                else {
-                                    ItemCountCurrent = 0;
-                                    ItemCountMax = 0;
-                                    StoneCountCurrent = 0;
-                                    StoneCountMax = 0;
-                                }
-                            }
-                        }
-
-
-                        var battleRatingString = FindBy("<BaseFont Color=#0070FF>[Battle Rating", split);
-
-                        if (!string.IsNullOrEmpty(battleRatingString)) {
-                            BattleRating = AIDataParser.ParseInt(battleRatingString.Replace("<BaseFont Color=#0070FF>[Battle Rating]:<BASEFONT COLOR=#FFFFFF>", ""));
-                        }
-                        else {
-                            BattleRating = 0;
-                        }
-
-                        var requiredLevelString = FindBy("<BaseFont Color=#FF0000>[Required Level", split);
-
-                        if (!string.IsNullOrEmpty(requiredLevelString)) {
-                            RequiredLevel = AIDataParser.ParseInt(requiredLevelString.Replace("<BaseFont Color=#FF0000>[Required Level]:<BASEFONT COLOR=#FFFFFF>", ""));
-                        }
-                        else {
-                            RequiredLevel = 0;
-                        }
-
-                        var selfRepairString = FindBy("Self Repair", split);
-
-                        if (!string.IsNullOrEmpty(selfRepairString)) {
-                            SelfRepair = AIDataParser.ParseInt(selfRepairString);
-                        }
-
-
-                        var foundString = FindBy("Hit Chance Increase", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            HitChanceIncrease = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Defense Chance Increase", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            DefenseChanceIncrease = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Lower Reagent Cost", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            LowerReagentCost = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Lower Mana Cost", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            LowerManaCost = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Luck", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            Luck = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Artifact Rarity", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            ArtifactRarity = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("<BASEFONT COLOR=#FF8000>[Level", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            Level = AIDataParser.ParseInt(foundString.Replace("<BASEFONT COLOR=#FF8000>[Level", ""));
-                        }
-
-                        foundString = FindBy("<BASEFONT COLOR=#1EFF00>[Experience", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            Experience = AIDataParser.ParseInt(foundString.Replace("<BASEFONT COLOR=#1EFF00>[Experience", ""));
-                        }
-
-                        foundString = FindBy("Durability", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            DurabilityBoost = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Strength Requirement", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            StrengthRequirement = AIDataParser.ParseInt(foundString);
-                        }
-
-                        //Hit Stats
-                        var hitString = FindByWithoutWord("Hit Physical", "Area", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitPhysical = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Hit Physical Area", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitPhysicalArea = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindByWithoutWord("Hit Fireball", "Area", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitFireball = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Hit Fire Area", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitFireballArea = AIDataParser.ParseInt(hitString);
-                        }
-
-
-                        hitString = FindByWithoutWord("Hit Lightning", "Area", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitLightning = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Hit Lightning Area", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitLightningArea = AIDataParser.ParseInt(hitString);
-                        }
-
-
-                        hitString = FindByWithoutWord("Hit Cold", "Area", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitCold = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Hit Cold Area", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitColdArea = AIDataParser.ParseInt(hitString);
-                        }
-
-
-                        hitString = FindByWithoutWord("Hit Poison", "Area", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitPoison = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Hit Poison Area", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitPoisonArea = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindByWithoutWord("Hit Energy", "Area", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitEnergy = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Hit Energy Area", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitEnergyArea = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Hit Life Leech", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitLifeLeech = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Hit Stamina Leech", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitStaminaLeech = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Hit Mana Leech", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitManaLeech = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Hit Dispel", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitDispel = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Hit Harm", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitHarm = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Hit Explosion", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitExplosion = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Hit Magic Arrow", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitMagicArrow = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Hit Lower Attack", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitLowerAttack = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Hit Lower Defense", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            HitLowerDefense = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Physical Damage", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            PhysicalDamage = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Fire Damage", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            FireDamage = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Cold Damage", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            ColdDamage = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Energy Damage", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            EnergyDamage = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Chaos Damage", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            ChaosDamage = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Direct Damage", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            DirectDamage = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Swarm", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            Swarm = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Sparks", split);
-
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            Sparks = AIDataParser.ParseInt(hitString);
-                        }
-
-                        hitString = FindBy("Mage Weapon", split);
-                        if (!string.IsNullOrEmpty(hitString)) {
-                            var trimmedString = hitString.Replace("Mage Weapon ", "");
-                            trimmedString = trimmedString.Replace("Skill", "").Trim();
-
-                            if (int.TryParse(trimmedString, out var value)) {
-                                MageWeaponSkill = value;
-                            }
-                        }
-
-                        foundString = FindByEndsWith("Slayer", split);
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            SlayerType = foundString.Replace("Slayer", "").Trim();
-                        }
-
-                        //Bow Stats
-                        foundString = FindBy("Ammo:", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            Ammo = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Damage Modifier:", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            BowDamageModifier = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Lower Ammo Cost", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            LowerAmmoCost = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Weight Reduction", split);
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            WeightReduction = AIDataParser.ParseInt(foundString);
-                        }
-
-                        //Spell Book Stats
-                        foundString = FindByEndsWith("Spells", split);
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            SpellBookCount = AIDataParser.ParseInt(foundString);
-                        }
-
-                        //Defense Stats
-                        foundString = FindBy("Fire Eater", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            FireEater = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Cold Eater", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            ColdEater = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Poison Eater", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            PoisonEater = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Energy Eater", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            EnergyEater = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Kinetic Eater", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            KineticEater = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Damage Eater", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            DamageEater = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Fire Resonance", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            FireResonance = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Cold Resonance", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            ColdResonance = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Poison Resonance", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            PoisonResonance = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Energy Resonance", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            EnergyResonance = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Kinetic Resonance", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            KineticResonance = AIDataParser.ParseInt(foundString);
-                        }
-
-                        //Regen / Buff Stats
-                        var regenString = FindBy("Intelligence Bonus", split);
-
-                        if (!string.IsNullOrEmpty(regenString)) {
-                            IntBonus = AIDataParser.ParseInt(regenString);
-                        }
-
-                        regenString = FindBy("Dexterity Bonus", split);
-
-                        if (!string.IsNullOrEmpty(regenString)) {
-                            DexBonus = AIDataParser.ParseInt(regenString);
-                        }
-
-                        regenString = FindBy("Strength Bonus", split);
-
-                        if (!string.IsNullOrEmpty(regenString)) {
-                            StrBonus = AIDataParser.ParseInt(regenString);
-                        }
-
-                        regenString = FindBy("Hit Point Increase", split);
-
-                        if (!string.IsNullOrEmpty(regenString)) {
-                            HitPointIncrease = AIDataParser.ParseInt(regenString);
-                        }
-
-                        regenString = FindBy("Stamina Increase", split);
-
-                        if (!string.IsNullOrEmpty(regenString)) {
-                            StaminaIncrease = AIDataParser.ParseInt(regenString);
-                        }
-
-                        regenString = FindBy("Mana Increase", split);
-
-                        if (!string.IsNullOrEmpty(regenString)) {
-                            ManaIncrease = AIDataParser.ParseInt(regenString);
-                        }
-
-                        regenString = FindBy("Hit Point Regeneration", split);
-
-                        if (!string.IsNullOrEmpty(regenString)) {
-                            HitPointRegeneration = AIDataParser.ParseInt(regenString);
-                        }
-
-                        regenString = FindBy("Mana Regeneration", split);
-
-                        if (!string.IsNullOrEmpty(regenString)) {
-                            ManaRegeneration = AIDataParser.ParseInt(regenString);
-                        }
-
-                        regenString = FindBy("Stamina Regeneration", split);
-
-                        if (!string.IsNullOrEmpty(regenString)) {
-                            StaminaRegeneration = AIDataParser.ParseInt(regenString);
-                        }
-
-                        regenString = FindBy("Faster Cast Recovery", split);
-
-                        if (!string.IsNullOrEmpty(regenString)) {
-                            FasterCastRecovery = AIDataParser.ParseInt(regenString);
-                        }
-
-                        regenString = FindBy("Faster Casting", split);
-
-                        if (!string.IsNullOrEmpty(regenString)) {
-                            FasterCasting = AIDataParser.ParseInt(regenString);
-                        }
-
-                        regenString = FindBy("Swing Speed Increase", split);
-
-                        if (!string.IsNullOrEmpty(regenString)) {
-                            SwingSpeedIncrease = AIDataParser.ParseInt(regenString);
-                        }
-
-                        regenString = FindBy("Damage Increase", split);
-
-                        if (!string.IsNullOrEmpty(regenString)) {
-                            DamageIncrease = AIDataParser.ParseInt(regenString);
-                        }
-
-                        regenString = FindBy("Velocity", split);
-
-                        if (!string.IsNullOrEmpty(regenString)) {
-                            Velocity = AIDataParser.ParseInt(regenString);
-                        }
-
-                        regenString = FindBy("Enhance Potions", split);
-
-                        if (!string.IsNullOrEmpty(regenString)) {
-                            EnhancePotions = AIDataParser.ParseInt(regenString);
-                        }
-
-                        regenString = FindBy("Spell Damage Increase", split);
-
-                        if (!string.IsNullOrEmpty(regenString)) {
-                            SpellDamageIncrease = AIDataParser.ParseInt(regenString);
-                        }
-
-                        //Armor Stats
-                        foundString = FindBy("Reflect Physical Damage", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            ReflectPhysicalDamage = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Physical Resist", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            PhysicalResist = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Fire Resist", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            FireResist = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Cold Resist", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            ColdResist = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Energy Resist", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            EnergyResist = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Poison Resist", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            PoisonResist = AIDataParser.ParseInt(foundString);
-                        }
-
-                        //Skill Boosts
-                        foundString = FindBy("Tactics +", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            TacticsBoost = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Archery +", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            ArcheryBoost = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Anatomy +", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            AnatomyBoost = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Chivalry +", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            ChivalryBoost = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Animal Taming +", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            AnimalTamingBoost = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Animal Lore +", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            AnimalLoreBoost = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Peacemaking +", split);
-
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            PeacemakingBoost = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Bushido +", split);
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            BushidoBoost = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Healing +", split);
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            HealingBoost = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("Parrying +", split);
-                        if (!string.IsNullOrEmpty(foundString)) {
-                            ParryingBoost = AIDataParser.ParseInt(foundString);
-                        }
-
-                        foundString = FindBy("<BaseFont Color=#1EFF00>[Uncommon]", split);
-                        foundString = FindBy("<BaseFont Color=#D6D6D6>[Common]", split);
-                        foundString = FindBy("Antique", split);
-                        foundString = FindBy("Lesser Artifact", split);
-                        foundString = FindBy("Major Artifact", split);
-                        foundString = FindBy("Fully Charged", split);
-                        foundString = FindBy("Requirement: Mondain", split);
-                        foundString = FindBy("Part Of A Weapon", split);
-                        foundString = FindBy("Giant Serpent Protection", split);
-                        foundString = FindBy("Skill Required", split);
-                        foundString = FindBy("Two-handed Weapon", split);
-                        foundString = FindBy("One-handed Weapon", split);
-                        foundString = FindBy("Use Best Weapon Skill", split);
-
-                        var usesRemainingString = FindBy("Uses Remaining", split);
-                        if (!string.IsNullOrEmpty(usesRemainingString)) {
-                            foundString = FindBy("Level: ", split);
                         }
                     }
 
-                    int finalCount = split.Count;
+                    var weaponDamageString = FindBy("Weapon Damage ", split);
 
-                    if (finalCount > 0) {
-                        int asdf = 1;
+                    if (!string.IsNullOrEmpty(weaponDamageString)) {
+
+                        var regex = new Regex(WeaponDamageRegex);
+                        var match = regex.Match(weaponDamageString);
+
+                        if (match.Success && match.Groups.Count > 2) {
+                            var minString = match.Groups[1].Value;
+                            var maxString = match.Groups[2].Value;
+
+                            if (int.TryParse(minString, out var min) && int.TryParse(maxString, out var max)) {
+                                WeaponDamageMin = min;
+                                WeaponDamageMax = max;
+                            }
+                            else {
+                                WeaponDamageMin = 0;
+                                WeaponDamageMax = 0;
+                            }
+                        }
                     }
 
-                    CalculateAiScore();
+                    var bagContentsString = FindBy("Contents: ", split);
+
+                    if (!string.IsNullOrEmpty(bagContentsString)) {
+
+                        var regex = new Regex(BagContentsRegex);
+                        var match = regex.Match(bagContentsString);
+
+                        if (match.Success && match.Groups.Count > 4) {
+                            var minString = match.Groups[1].Value;
+                            var maxString = match.Groups[2].Value;
+                            var minStonesString = match.Groups[3].Value;
+                            var maxStonesString = match.Groups[4].Value;
+
+                            if (int.TryParse(minString, out var min) && int.TryParse(maxString, out var max) && int.TryParse(minStonesString, out var currentStones) && int.TryParse
+                                    (maxStonesString, out var maxStones)) {
+                                ItemCountCurrent = min;
+                                ItemCountMax = max;
+                                StoneCountCurrent = currentStones;
+                                StoneCountMax = maxStones;
+                            }
+                            else {
+                                ItemCountCurrent = 0;
+                                ItemCountMax = 0;
+                                StoneCountCurrent = 0;
+                                StoneCountMax = 0;
+                            }
+                        }
+                    }
+
+
+                    var battleRatingString = FindBy("<BaseFont Color=#0070FF>[Battle Rating", split);
+
+                    if (!string.IsNullOrEmpty(battleRatingString)) {
+                        BattleRating = AIDataParser.ParseInt(battleRatingString.Replace("<BaseFont Color=#0070FF>[Battle Rating]:<BASEFONT COLOR=#FFFFFF>", ""));
+                    }
+                    else {
+                        BattleRating = 0;
+                    }
+
+                    var requiredLevelString = FindBy("<BaseFont Color=#FF0000>[Required Level", split);
+
+                    if (!string.IsNullOrEmpty(requiredLevelString)) {
+                        RequiredLevel = AIDataParser.ParseInt(requiredLevelString.Replace("<BaseFont Color=#FF0000>[Required Level]:<BASEFONT COLOR=#FFFFFF>", ""));
+                    }
+                    else {
+                        RequiredLevel = 0;
+                    }
+
+                    var selfRepairString = FindBy("Self Repair", split);
+
+                    if (!string.IsNullOrEmpty(selfRepairString)) {
+                        SelfRepair = AIDataParser.ParseInt(selfRepairString);
+                    }
+
+
+                    var foundString = FindBy("Hit Chance Increase", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        HitChanceIncrease = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("<BASEFONT COLOR=#30FF9B>Maximum Sockets Allowed", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        DefenseChanceIncrease = AIDataParser.ParseInt(foundString.Replace("<BASEFONT COLOR=#30FF9B>Maximum", ""));
+                    }
+
+                    foundString = FindBy("Defense Chance Increase", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        DefenseChanceIncrease = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Lower Reagent Cost", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        LowerReagentCost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Lower Mana Cost", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        LowerManaCost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Luck", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        Luck = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Artifact Rarity", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        ArtifactRarity = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("<BASEFONT COLOR=#FF8000>[Level", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        Level = AIDataParser.ParseInt(foundString.Replace("<BASEFONT COLOR=#FF8000>[Level", ""));
+                    }
+
+                    foundString = FindBy("<BASEFONT COLOR=#1EFF00>[Experience", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        Experience = AIDataParser.ParseInt(foundString.Replace("<BASEFONT COLOR=#1EFF00>[Experience", ""));
+                    }
+
+                    foundString = FindBy("Durability", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        DurabilityBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Strength Requirement", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        StrengthRequirement = AIDataParser.ParseInt(foundString);
+                    }
+
+                    //Hit Stats
+                    var hitString = FindByWithoutWord("Hit Physical", "Area", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitPhysical = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Hit Physical Area", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitPhysicalArea = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindByWithoutWord("Hit Fireball", "Area", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitFireball = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Hit Fire Area", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitFireballArea = AIDataParser.ParseInt(hitString);
+                    }
+
+
+                    hitString = FindByWithoutWord("Hit Lightning", "Area", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitLightning = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Hit Lightning Area", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitLightningArea = AIDataParser.ParseInt(hitString);
+                    }
+
+
+                    hitString = FindByWithoutWord("Hit Cold", "Area", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitCold = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Hit Cold Area", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitColdArea = AIDataParser.ParseInt(hitString);
+                    }
+
+
+                    hitString = FindByWithoutWord("Hit Poison", "Area", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitPoison = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Hit Poison Area", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitPoisonArea = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindByWithoutWord("Hit Energy", "Area", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitEnergy = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Hit Energy Area", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitEnergyArea = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Hit Life Leech", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitLifeLeech = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Hit Stamina Leech", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitStaminaLeech = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Hit Mana Leech", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitManaLeech = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Hit Dispel", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitDispel = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Hit Harm", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitHarm = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Hit Explosion", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitExplosion = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Hit Magic Arrow", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitMagicArrow = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Hit Lower Attack", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitLowerAttack = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Hit Lower Defense", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        HitLowerDefense = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Physical Damage", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        PhysicalDamage = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Fire Damage", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        FireDamage = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Cold Damage", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        ColdDamage = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Energy Damage", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        EnergyDamage = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Chaos Damage", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        ChaosDamage = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Direct Damage", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        DirectDamage = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Swarm", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        Swarm = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Sparks", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        Sparks = AIDataParser.ParseInt(hitString);
+                    }
+
+                    hitString = FindBy("Mage Weapon", split);
+
+                    if (!string.IsNullOrEmpty(hitString)) {
+                        var trimmedString = hitString.Replace("Mage Weapon ", "");
+                        trimmedString = trimmedString.Replace("Skill", "").Trim();
+
+                        if (int.TryParse(trimmedString, out var value)) {
+                            MageWeaponSkill = value;
+                        }
+                    }
+
+                    foundString = FindByEndsWith("Slayer", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        SlayerType = foundString.Replace("Slayer", "").Trim();
+                    }
+
+                    //Bow Stats
+                    foundString = FindBy("Ammo:", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        Ammo = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Damage Modifier:", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        BowDamageModifier = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Lower Ammo Cost", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        LowerAmmoCost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Weight Reduction", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        WeightReduction = AIDataParser.ParseInt(foundString);
+                    }
+
+                    //Spell Book Stats
+                    foundString = FindByEndsWith("Spells", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        SpellBookCount = AIDataParser.ParseInt(foundString);
+                    }
+
+                    //Defense Stats
+                    foundString = FindBy("Fire Eater", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        FireEater = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Cold Eater", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        ColdEater = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Poison Eater", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        PoisonEater = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Energy Eater", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        EnergyEater = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Kinetic Eater", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        KineticEater = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Damage Eater", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        DamageEater = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Fire Resonance", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        FireResonance = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Cold Resonance", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        ColdResonance = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Poison Resonance", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        PoisonResonance = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Energy Resonance", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        EnergyResonance = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Kinetic Resonance", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        KineticResonance = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Casting Focus", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        CastingFocus = AIDataParser.ParseInt(foundString);
+                    }
+
+                    //Regen / Buff Stats
+                    var regenString = FindBy("Intelligence Bonus", split);
+
+                    if (!string.IsNullOrEmpty(regenString)) {
+                        IntBonus = AIDataParser.ParseInt(regenString);
+                    }
+
+                    regenString = FindBy("Dexterity Bonus", split);
+
+                    if (!string.IsNullOrEmpty(regenString)) {
+                        DexBonus = AIDataParser.ParseInt(regenString);
+                    }
+
+                    regenString = FindBy("Strength Bonus", split);
+
+                    if (!string.IsNullOrEmpty(regenString)) {
+                        StrBonus = AIDataParser.ParseInt(regenString);
+                    }
+
+                    regenString = FindBy("Hit Point Increase", split);
+
+                    if (!string.IsNullOrEmpty(regenString)) {
+                        HitPointIncrease = AIDataParser.ParseInt(regenString);
+                    }
+
+                    regenString = FindBy("Stamina Increase", split);
+
+                    if (!string.IsNullOrEmpty(regenString)) {
+                        StaminaIncrease = AIDataParser.ParseInt(regenString);
+                    }
+
+                    regenString = FindBy("Mana Increase", split);
+
+                    if (!string.IsNullOrEmpty(regenString)) {
+                        ManaIncrease = AIDataParser.ParseInt(regenString);
+                    }
+
+                    regenString = FindBy("Hit Point Regeneration", split);
+
+                    if (!string.IsNullOrEmpty(regenString)) {
+                        HitPointRegeneration = AIDataParser.ParseInt(regenString);
+                    }
+
+                    regenString = FindBy("Mana Regeneration", split);
+
+                    if (!string.IsNullOrEmpty(regenString)) {
+                        ManaRegeneration = AIDataParser.ParseInt(regenString);
+                    }
+
+                    regenString = FindBy("Stamina Regeneration", split);
+
+                    if (!string.IsNullOrEmpty(regenString)) {
+                        StaminaRegeneration = AIDataParser.ParseInt(regenString);
+                    }
+
+                    regenString = FindBy("Faster Cast Recovery", split);
+
+                    if (!string.IsNullOrEmpty(regenString)) {
+                        FasterCastRecovery = AIDataParser.ParseInt(regenString);
+                    }
+
+                    regenString = FindBy("Faster Casting", split);
+
+                    if (!string.IsNullOrEmpty(regenString)) {
+                        FasterCasting = AIDataParser.ParseInt(regenString);
+                    }
+
+                    regenString = FindBy("Swing Speed Increase", split);
+
+                    if (!string.IsNullOrEmpty(regenString)) {
+                        SwingSpeedIncrease = AIDataParser.ParseInt(regenString);
+                    }
+
+                    regenString = FindBy("Damage Increase", split);
+
+                    if (!string.IsNullOrEmpty(regenString)) {
+                        DamageIncrease = AIDataParser.ParseInt(regenString);
+                    }
+
+                    regenString = FindBy("Velocity", split);
+
+                    if (!string.IsNullOrEmpty(regenString)) {
+                        Velocity = AIDataParser.ParseInt(regenString);
+                    }
+
+                    regenString = FindBy("Enhance Potions", split);
+
+                    if (!string.IsNullOrEmpty(regenString)) {
+                        EnhancePotions = AIDataParser.ParseInt(regenString);
+                    }
+
+                    regenString = FindBy("Spell Damage Increase", split);
+
+                    if (!string.IsNullOrEmpty(regenString)) {
+                        SpellDamageIncrease = AIDataParser.ParseInt(regenString);
+                    }
+
+                    //Armor Stats
+                    foundString = FindBy("Reflect Physical Damage", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        ReflectPhysicalDamage = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Physical Resist", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        PhysicalResist = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Fire Resist", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        FireResist = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Cold Resist", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        ColdResist = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Energy Resist", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        EnergyResist = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Poison Resist", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        PoisonResist = AIDataParser.ParseInt(foundString);
+                    }
+
+                    //Skill Boosts
+                    foundString = FindBy("Tactics +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        TacticsBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Archery +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        ArcheryBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Anatomy +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        AnatomyBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Chivalry +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        ChivalryBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Animal Taming +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        AnimalTamingBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Animal Lore +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        AnimalLoreBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Peacemaking +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        PeacemakingBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Bushido +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        BushidoBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Healing +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        HealingBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Parrying +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        ParryingBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Magery +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        MageryBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Evaluate Intelligence +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        EvaluateIntelligenceBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Veterinary +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        VeterinaryBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Provocation +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        ProvocationBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Discordance +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        DiscordanceBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Spirit Speak +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        SpiritSpeakBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Hiding +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        HidingBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Ninjitsu +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        NinjitsuBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Mace Fighting +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        MaceFightingBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Tracking +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        TrackingBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Swordsmanship +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        SwordsmanshipBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Stealth +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        StealthBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Stealing +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        StealingBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+                    foundString = FindBy("Snooping +", split);
+
+                    if (!string.IsNullOrEmpty(foundString)) {
+                        SnoopingBoost = AIDataParser.ParseInt(foundString);
+                    }
+
+
+
+                    foundString = FindBy("<BaseFont Color=#1EFF00>[Uncommon]", split);
+                    foundString = FindBy("<BaseFont Color=#D6D6D6>[Common]", split);
+                    foundString = FindBy("<BaseFont Color=#0070FF>[Rare", split);
+                    foundString = FindBy("<BaseFont Color=#A335EE>[Epic", split);
+                    foundString = FindBy("Antique", split);
+                    foundString = FindBy("Greater Artifact", split);
+                    foundString = FindBy("Lesser Artifact", split);
+                    foundString = FindBy("Major Artifact", split);
+                    foundString = FindBy("Fully Charged", split);
+                    foundString = FindBy("Requirement: Mondain", split);
+                    foundString = FindBy("Part Of A Weapon", split);
+                    foundString = FindBy("Part Of An Armor Set", split);
+                    foundString = FindBy("Giant Serpent Protection", split);
+                    foundString = FindBy("Skill Required", split);
+                    foundString = FindBy("Two-handed Weapon", split);
+                    foundString = FindBy("One-handed Weapon", split);
+                    foundString = FindBy("Use Best Weapon Skill", split);
+                    foundString = FindBy("<BaseFont Color=#0070FF>[Battle Rating", split); //This is already parsed
+                    foundString = FindBy("Skill: ", split);
+                    foundString = FindBy("Minor Magic Item", split);
+                    foundString = FindBy("Greater Magic Item", split);
+                    foundString = FindBy("Major Magic Item", split);
+                    foundString = FindBy("Mount Hue:", split);
+                    foundString = FindBy("Lower Requirements", split);
+
+                    var usesRemainingString = FindBy("Uses Remaining", split);
+
+                    if (!string.IsNullOrEmpty(usesRemainingString)) {
+                        foundString = FindBy("Level: ", split);
+                    }
                 }
+
+                int finalCount = split.Count;
+
+                if (finalCount > 0) {
+                    int asdf = 1;
+                }
+
+                CalculateAiScore();
+
             }
         }
 

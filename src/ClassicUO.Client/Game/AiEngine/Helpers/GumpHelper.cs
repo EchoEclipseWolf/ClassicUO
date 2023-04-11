@@ -113,6 +113,64 @@ namespace ClassicUO.Game.AiEngine.Helpers
             return null;
         }
 
+        internal static List<Gump> GetBODBooks() {
+            var list = new List<Gump>();
+
+            try {
+                var gumps = UIManager.Gumps.ToList();
+
+                foreach (var gump in gumps.Where(g => g != null && g.Children.Count > 0)) {
+                    foreach (var child in gump.Children) {
+                        if (child is HtmlControl htmlControl) {
+                            if (htmlControl.Text.ToLower().Contains("bulk order")) {
+                                list.Add(gump);
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception) {
+                return list;
+            }
+
+            return list;
+        }
+
+        internal static Gump GetAnimalBODBook() {
+            try {
+                var gumps = UIManager.Gumps.ToList();
+
+                bool foundBOD = false;
+                bool foundAnimalLabel = false;
+                Gump bodGump = null;
+                foreach (var gump in gumps.Where(g => g != null && g.Children.Count > 0)) {
+                    foreach (var child in gump.Children) {
+                        if (foundBOD && foundAnimalLabel) {
+                            break;
+                        }
+                        if (child is HtmlControl htmlControl) {
+                            if (htmlControl.Text.ToLower().Contains("bulk order")) {
+                                foundBOD = true;
+                            }
+                        }
+                        else if (child is Label label) {
+                            if (label.Text.ToLower().Contains("animal")) {
+                                foundAnimalLabel = true;
+                            }
+                        }
+                    }
+                    if (foundBOD && foundAnimalLabel) {
+                        return gump;
+                    }
+                }
+            }
+            catch (Exception) {
+                return null;
+            }
+
+            return null;
+        }
+
         internal static PopupMenuGump GetPopupMenu()
         {
             var gumps = UIManager.Gumps.ToList();
@@ -126,5 +184,102 @@ namespace ClassicUO.Game.AiEngine.Helpers
 
             return null;
         }
+
+        internal static Gump GetStaffToolbarGump() {
+            try {
+                var gumps = UIManager.Gumps.ToList();
+
+                bool foundAdmin = false;
+                bool foundStaffRunebook = false;
+                foreach (var gump in gumps.Where(g => g != null && g.Children.Count > 0)) {
+                    foreach (var child in gump.Children) {
+                        if (foundAdmin && foundStaffRunebook) {
+                            break;
+                        }
+                        if (child is HtmlControl htmlControl) {
+                            if (htmlControl.Text.ToLower().Contains("[admin".ToLower())) {
+                                foundAdmin = true;
+                            }
+
+                            if (htmlControl.Text.ToLower().Contains("[StaffRunebook".ToLower())) {
+                                foundStaffRunebook = true;
+                            }
+                        }
+                    }
+                    if (foundAdmin && foundStaffRunebook) {
+                        return gump;
+                    }
+                }
+            }
+            catch (Exception) {
+                return null;
+            }
+
+            return null;
+        }
+
+        internal static Gump GetChatHistoryGump() {
+            try {
+                var gumps = UIManager.Gumps.ToList();
+
+                foreach (var gump in gumps.Where(g => g != null && g.Children.Count > 0)) {
+                    foreach (var child in gump.Children) {
+                        if (child is HtmlControl htmlControl) {
+                            if (htmlControl.Text.ToLower().Contains("History - Auto Refresh: ON".ToLower())) {
+                                return gump;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception) {
+                return null;
+            }
+
+            return null;
+        }
+        internal static Gump GetMessageOfTheDayGump() {
+            try {
+                var gumps = UIManager.Gumps.ToList();
+
+                foreach (var gump in gumps.Where(g => g != null && g.Children.Count > 0)) {
+                    foreach (var child in gump.Children) {
+                        if (child is Label label) {
+                            if (label.Text.ToLower().Contains("Message of the Day - Main".ToLower())) {
+                                return gump;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception) {
+                return null;
+            }
+
+            return null;
+        }
+
+        internal static Gump GetVetRewardGump() {
+            try {
+                var gumps = UIManager.Gumps.ToList();
+
+                foreach (var gump in gumps.Where(g => g != null && g.Children.Count > 0)) {
+                    foreach (var child in gump.Children) {
+                        if (child is HtmlControl label && !string.IsNullOrEmpty(label.Text)) {
+                            if (label.Text.ToLower().Contains("You have reward items available.".ToLower())) {
+                                return gump;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception) {
+                return null;
+            }
+
+            return null;
+        }
     }
+
+    
 }

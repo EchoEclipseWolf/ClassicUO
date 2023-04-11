@@ -67,9 +67,9 @@ namespace ClassicUO.Game.Scenes
         {
             if ((_rightMousePressed || _continueRunning) && World.InGame) // && !Pathfinder.AutoWalking)
             {
-                if (Pathfinder.AutoWalking)
+                if (World.Pathfinder.AutoWalking)
                 {
-                    Pathfinder.StopAutoWalk();
+                    World.Pathfinder.StopAutoWalk();
                 }
 
                 int x = Camera.Bounds.X + (Camera.Bounds.Width >> 1);
@@ -854,7 +854,7 @@ namespace ClassicUO.Game.Scenes
                 return false;
             }
 
-            if (ProfileManager.CurrentProfile.EnablePathfind && !Pathfinder.AutoWalking)
+            if (ProfileManager.CurrentProfile.EnablePathfind && !World.Pathfinder.AutoWalking)
             {
                 if (ProfileManager.CurrentProfile.UseShiftToPathfind && !Keyboard.Shift)
                 {
@@ -867,7 +867,7 @@ namespace ClassicUO.Game.Scenes
                     {
                         ref StaticTiles itemdata = ref TileDataLoader.Instance.StaticData[obj.Graphic];
 
-                        if (itemdata.IsSurface && Pathfinder.WalkTo(obj.X, obj.Y, obj.Z, 0))
+                        if (itemdata.IsSurface && World.Pathfinder.WalkTo(obj.X, obj.Y, obj.Z, 0))
                         {
                             World.Player.AddMessage
                             (
@@ -882,7 +882,7 @@ namespace ClassicUO.Game.Scenes
                             return true;
                         }
                     }
-                    else if (obj is Land && Pathfinder.WalkTo(obj.X, obj.Y, obj.Z, 0))
+                    else if (obj is Land && World.Pathfinder.WalkTo(obj.X, obj.Y, obj.Z, 0))
                     {
                         World.Player.AddMessage
                         (
@@ -1120,9 +1120,9 @@ namespace ClassicUO.Game.Scenes
             {
                 case SDL.SDL_Keycode.SDLK_ESCAPE:
 
-                    if (Pathfinder.AutoWalking && Pathfinder.PathindingCanBeCancelled)
+                    if (World.Pathfinder.AutoWalking && World.Pathfinder.PathindingCanBeCancelled)
                     {
-                        Pathfinder.StopAutoWalk();
+                        World.Pathfinder.StopAutoWalk();
                     }
 
                     break;

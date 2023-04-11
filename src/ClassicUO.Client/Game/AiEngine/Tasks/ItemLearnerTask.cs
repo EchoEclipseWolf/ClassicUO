@@ -14,13 +14,10 @@ using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
 using ClassicUO.Game.UI.Gumps;
 
-namespace ClassicUO.Game.AiEngine.Tasks
-{
-    public class ItemLearnerTask : BaseAITask
-    {
+namespace ClassicUO.Game.AiEngine.Tasks {
+    public class ItemLearnerTask : BaseAITask {
         private Stopwatch _timer = Stopwatch.StartNew();
         private const int DELAY = 500;
-        private Item _masterStorageContainer = null;
 
         private const string GOLD_REGEX_STRING = "Gold:\\s*(\\d+)";
         private const string TOKENS_REGEX_STRING = "Tokens:\\s*(\\d+)";
@@ -32,95 +29,81 @@ namespace ClassicUO.Game.AiEngine.Tasks
         private const int MASTER_STORAGE_CHECK_DELAY = 100;
         public static bool ShouldResetGoldTokens = false;
 
-        public ItemLearnerTask() : base("Item Learner Task")
-        {
+        public ItemLearnerTask() : base("Item Learner Task") {
         }
 
-        public override int Priority()
-        {
+        public override int Priority() {
             return 1;
         }
 
-        public override async Task<bool> Pulse()
-        {
-            if (_timer.ElapsedMilliseconds < DELAY)
-            {
+        public override async Task<bool> Pulse() {
+            if (_timer.ElapsedMilliseconds < DELAY) {
                 return false;
             }
+
             _timer.Restart();
 
-            //var backpackItems = await ItemsHelper.GetPlayerBackpackItems(true);
-            //var count = await ItemsHelper.GetPlayerBackpackItemCount();
-
-            if (_masterStorageContainer == null) {
-                var masterStorages = await ItemsHelper.GetPlayerBackpackItemsById(0x09B2, 0x0491);
-
-                if (masterStorages.Count > 0) {
-                    var first = masterStorages.FirstOrDefault();
-
-                    if (first != null && first.Item2 != null) {
-                        _masterStorageContainer = first.Item2;
-                    }
-                }
+            if (ItemDataUpdateTask.MasterLootContainer == null) {
+                return false;
             }
 
-            if (_masterStorageContainer != null) {
-                if (_masterStorageTimer.ElapsedMilliseconds >= MASTER_STORAGE_CHECK_DELAY) {
-                    if (SerialHelper.IsValid(_masterStorageContainer.Serial) && World.OPL.TryGetNameAndData(_masterStorageContainer.Serial, out string name, out string data)) {
+            if (_masterStorageTimer.ElapsedMilliseconds >= MASTER_STORAGE_CHECK_DELAY) {
+                if (SerialHelper.IsValid(ItemDataUpdateTask.MasterLootContainer.Serial) && World.OPL.TryGetNameAndData
+                        (ItemDataUpdateTask.MasterLootContainer.Serial, out string name, out string data)) {
 
-                        var match = _goldRegex.Match(data);
-                        var tokenMatch = _tokensRegex.Match(data);
+                    var match = _goldRegex.Match(data);
+                    var tokenMatch = _tokensRegex.Match(data);
 
-                        if (match.Success && match.Groups.Count > 1 && tokenMatch.Success && tokenMatch.Groups.Count > 1) {
-                            var goldString = match.Groups[1].Value;
+                    if (match.Success && match.Groups.Count > 1 && tokenMatch.Success && tokenMatch.Groups.Count > 1) {
+                        var goldString = match.Groups[1].Value;
 
-                            if (int.TryParse(goldString, out var gold)) {
-                                if (_startingGold == -1 || ShouldResetGoldTokens) {
-                                    GameActions.Print($"[ItemLearner]: Setting Starting Gold: {gold:N}");
-                                    _startingGold = gold;
-                                }
-                                else {
-                                    var newGold = gold - _startingGold;
-                                    AIEngineOverlayGump.GainedGold = newGold;
-                                }
+                        if (int.TryParse(goldString, out var gold)) {
+                            if (_startingGold == -1 || ShouldResetGoldTokens) {
+                                GameActions.Print($"[ItemLearner]: Setting Starting Gold: {gold:N}");
+                                _startingGold = gold;
                             }
-
-                            var tokenString = tokenMatch.Groups[1].Value;
-
-                            if (int.TryParse(tokenString, out var tokens)) {
-                                if (_startingTokens == -1 || ShouldResetGoldTokens) {
-                                    GameActions.Print($"[ItemLearner]: Setting Starting Tokens: {tokens:N}");
-                                    _startingTokens = tokens;
-                                }
-                                else {
-                                    var newTokens = tokens - _startingTokens;
-                                    AIEngineOverlayGump.GainedTokens = newTokens;
-                                }
-                            }
-
-                            if (ShouldResetGoldTokens) {
-                                ShouldResetGoldTokens = false;
+                            else {
+                                var newGold = gold - _startingGold;
+                                AIEngineOverlayGump.GainedGold = newGold;
                             }
                         }
 
-                        var elapsed = _masterStorageTimer.ElapsedMilliseconds;
-                        _masterStorageTimer.Restart();
+                        var tokenString = tokenMatch.Groups[1].Value;
+
+                        if (int.TryParse(tokenString, out var tokens)) {
+                            if (_startingTokens == -1 || ShouldResetGoldTokens) {
+                                GameActions.Print($"[ItemLearner]: Setting Starting Tokens: {tokens:N}");
+                                _startingTokens = tokens;
+                            }
+                            else {
+                                var newTokens = tokens - _startingTokens;
+                                AIEngineOverlayGump.GainedTokens = newTokens;
+                            }
+                        }
+
+                        if (ShouldResetGoldTokens) {
+                            ShouldResetGoldTokens = false;
+                        }
                     }
+
+                    var elapsed = _masterStorageTimer.ElapsedMilliseconds;
+                    _masterStorageTimer.Restart();
                 }
+
             }
 
-            var stopwatch = Stopwatch.StartNew();
 
-            if (ItemsMemory.Instance.Runebooks.Count == 0) {
+            ItemsMemory.Instance.Runebooks.Clear();
 
-                var runebooksInBackpack = await ItemsHelper.GetPlayerBackpackItemsById(0x22C5, -1);
+            var runebooksInBackpack = await ItemsHelper.GetPlayerBackpackItemsById(false, 0x22C5, -1);
 
-                foreach (var runebookTuples in runebooksInBackpack) {
-                    ItemsMemory.Instance.AddRunebook(runebookTuples.Item2, runebookTuples.Item1, ItemLocationEnum.PlayerBackpack);
+            foreach (var runebookTuples in runebooksInBackpack.Where(i => i.Item != null)) {
+                var item = runebookTuples.Item;
+
+                if (item != null) {
+                    ItemsMemory.Instance.AddRunebook(item, item.Container, ItemLocationEnum.PlayerBackpack);
                 }
             }
-
-            var time = stopwatch.ElapsedTicks;
 
             return true;
         }

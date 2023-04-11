@@ -1,20 +1,9 @@
-﻿using ClassicUO.Game.Data;
-using ClassicUO.Game.GameObjects;
-using ClassicUO.Game.Managers;
-using ClassicUO.Game;
-using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.IO;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-using ClassicUO.Game.Enums;
-using System.Text.RegularExpressions;
-using System.Globalization;
+﻿using System.Threading.Tasks;
 using AkatoshQuester.Helpers.LightGeometry;
+using ClassicUO.AiEngine.AiEngineTasks;
+using ClassicUO.Game.Enums;
 
-namespace ClassicUO.AiEngine.AiEngineTasks
+namespace ClassicUO.Game.AiEngine.Scripts
 {
     public class MageryTrainingScript : BaseAITask
     {

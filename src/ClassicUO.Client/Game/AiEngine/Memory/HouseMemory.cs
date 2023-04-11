@@ -72,7 +72,7 @@ namespace ClassicUO.Game.AiEngine.Memory
             var foundContainers = new List<AiContainer>();
             int foundCount = 0;
 
-            foreach (var houseToSearch in Houses.Where(h => h.MapIndex == World.MapIndex)) {
+            foreach (var houseToSearch in Houses) {
                 foreach (var container in houseToSearch.Containers.Values) {
                     var containerItems = container.GetItems();
 
@@ -100,6 +100,33 @@ namespace ClassicUO.Game.AiEngine.Memory
             }
 
             GameActions.MessageOverhead($"Found {ContainersToHighlight.Count} containers  {foundCount} Items", World.Player.Serial);
+        }
+
+        public AiContainer SearchForItemsInHouse(string name, AiHouse house, bool exactName, out AIItem returnedItem) {
+            if (house == null) {
+                returnedItem = null;
+                return null;
+            }
+
+            foreach (var container in house.Containers.Values) {
+                var containerItems = container.GetItems();
+
+                foreach (var item in containerItems) {
+                    var nameMatches = item.Name.ToLower().Contains(name.ToLower());
+
+                    if (exactName) {
+                        nameMatches = string.Equals(item.Name, name, StringComparison.CurrentCultureIgnoreCase);
+                    }
+
+                    if (nameMatches) {
+                        returnedItem = item;
+                        return container;
+                    }
+                }
+            }
+
+            returnedItem = null;
+            return null;
         }
 
         public void OpenClosestContainer() {
@@ -135,16 +162,28 @@ namespace ClassicUO.Game.AiEngine.Memory
                 return false;
             }
 
-            var rootDistance = closestContainer.Distance();
+            return await OpenContainer(closestContainer, finalContainer);
+        }
 
-            if (rootDistance > 16) {
-                await Navigation.NavigateTo(closestContainer.Point(), closestContainer.MapIndex, true);
+        public async Task<bool> OpenContainer(AiContainer container, AiContainer finalContainer) {
+
+
+            if (container == null) {
+
+                return false;
+            }
+
+            var rootDistance = container.Distance();
+            var xyDistance = container.Point().Distance2D(World.Player.Position.ToPoint3D());
+
+            if (rootDistance > 16 || xyDistance > 2) {
+                await Navigation.NavigateTo(container.Point(), container.MapIndex, true);
 
                 return true;
             }
 
-            if (finalContainer == closestContainer) {
-                await InteractWithContainer(closestContainer);
+            if (finalContainer == container) {
+                await InteractWithContainer(container);
                 GameActions.MessageOverhead("Found and opened container", World.Player.Serial);
                 _openingContainer = false;
 
@@ -162,7 +201,7 @@ namespace ClassicUO.Game.AiEngine.Memory
             }
 
             if (openGumpInChain == 0) {
-                await InteractWithContainer(closestContainer);
+                await InteractWithContainer(container);
 
                 return true;
             }

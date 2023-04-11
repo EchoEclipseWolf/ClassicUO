@@ -6,6 +6,7 @@ using System;
 using System.Diagnostics;
 using System.Globalization;
 using AkatoshQuester.Helpers.LightGeometry;
+using ClassicUO.Game.AiEngine.Memory;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
 
@@ -137,6 +138,22 @@ namespace ClassicUO.AiEngine.AiEngineTasks {
             }
 
             await Task.Delay(waitTimeAfter);
+            return true;
+        }
+
+        protected async Task<bool> GoHome() {
+            var house = HouseMemory.Instance.Houses.First();
+
+            if (house == null) {
+                return false;
+            }
+
+            var housePoint = house.MiddlePoint;
+            if (housePoint.Distance() > 2) {
+                await Navigation.NavigateTo(housePoint, house.MapIndex, true);
+                return true;
+            }
+
             return true;
         }
     }

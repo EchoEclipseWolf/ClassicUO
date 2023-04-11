@@ -30,12 +30,14 @@
 
 #endregion
 
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using ClassicUO.Game.GameObjects;
 using ClassicUO.Game.Managers;
 using ClassicUO.Assets;
 using ClassicUO.Utility;
+using static System.Windows.Forms.VisualStyles.VisualStyleElement;
 
 namespace ClassicUO.Game.Map
 {
@@ -133,7 +135,6 @@ namespace ClassicUO.Game.Map
                                 staticObject.Y = (ushort) (by + sb->Y);
                                 staticObject.Z = sb->Z;
                                 staticObject.UpdateScreenPosition();
-
                                 AddGameObject(staticObject, sb->X, sb->Y);
                             }
                         }

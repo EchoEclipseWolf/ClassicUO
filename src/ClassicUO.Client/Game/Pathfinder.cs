@@ -42,41 +42,41 @@ using MathHelper = ClassicUO.Utility.MathHelper;
 
 namespace ClassicUO.Game
 {
-    internal static class Pathfinder
+    internal class Pathfinder
     {
         private const int PATHFINDER_MAX_NODES = 500;
-        private static int _goalNode;
-        private static bool _goalFound;
-        private static int _activeOpenNodes, _activeCloseNodes, _pathfindDistance;
-        private static readonly PathNode[] _openList = new PathNode[PATHFINDER_MAX_NODES];
-        private static readonly PathNode[] _closedList = new PathNode[PATHFINDER_MAX_NODES];
-        private static readonly PathNode[] _path = new PathNode[PATHFINDER_MAX_NODES];
-        private static int _pointIndex, _pathSize;
-        private static bool _run;
-        private static readonly int[] _offsetX =
+        private int _goalNode;
+        private bool _goalFound;
+        private int _activeOpenNodes, _activeCloseNodes, _pathfindDistance;
+        private readonly PathNode[] _openList = new PathNode[PATHFINDER_MAX_NODES];
+        private readonly PathNode[] _closedList = new PathNode[PATHFINDER_MAX_NODES];
+        private readonly PathNode[] _path = new PathNode[PATHFINDER_MAX_NODES];
+        private int _pointIndex, _pathSize;
+        private bool _run;
+        private readonly int[] _offsetX =
         {
             0, 1, 1, 1, 0, -1, -1, -1, 0, 1
         };
-        private static readonly int[] _offsetY =
+        private readonly int[] _offsetY =
         {
             -1, -1, 0, 1, 1, 1, 0, -1, -1, -1
         };
-        private static readonly sbyte[] _dirOffset =
+        private readonly sbyte[] _dirOffset =
         {
             1, -1
         };
-        private static Point _startPoint, _endPoint;
+        private Point _startPoint, _endPoint;
 
-        public static bool AutoWalking { get; set; }
+        public bool AutoWalking { get; set; }
 
-        public static bool PathindingCanBeCancelled { get; set; }
+        public bool PathindingCanBeCancelled { get; set; }
 
-        public static bool BlockMoving { get; set; }
+        public bool BlockMoving { get; set; }
 
-        public static bool FastRotation { get; set; }
+        public bool FastRotation { get; set; }
 
 
-        private static bool CreateItemList(List<PathObject> list, int x, int y, int stepState)
+        private bool CreateItemList(List<PathObject> list, int x, int y, int stepState)
         {
             GameObject tile = World.Map.GetTile(x, y, false);
 
@@ -317,7 +317,7 @@ namespace ClassicUO.Game
             return list.Count != 0;
         }
 
-        private static int CalculateMinMaxZ
+        private int CalculateMinMaxZ
         (
             ref int minZ,
             ref int maxZ,
@@ -390,7 +390,7 @@ namespace ClassicUO.Game
             return maxZ;
         }
 
-        public static bool CalculateNewZ(int x, int y, ref sbyte z, int direction)
+        public bool CalculateNewZ(int x, int y, ref sbyte z, int direction)
         {
             int stepState = (int) PATH_STEP_STATE.PSS_NORMAL;
 
@@ -534,7 +534,7 @@ namespace ClassicUO.Game
             return resultZ != -128;
         }
 
-        public static void GetNewXY(byte direction, ref int x, ref int y)
+        public void GetNewXY(byte direction, ref int x, ref int y)
         {
             switch (direction & 7)
             {
@@ -608,7 +608,7 @@ namespace ClassicUO.Game
             }
         }
 
-        public static bool CanWalk(ref Direction direction, ref int x, ref int y, ref sbyte z)
+        public bool CanWalk(ref Direction direction, ref int x, ref int y, ref sbyte z)
         {
             int newX = x;
             int newY = y;
@@ -657,12 +657,12 @@ namespace ClassicUO.Game
             return passed;
         }
 
-        private static int GetGoalDistCost(Point point, int cost)
+        private int GetGoalDistCost(Point point, int cost)
         {
             return Math.Max(Math.Abs(_endPoint.X - point.X), Math.Abs(_endPoint.Y - point.Y));
         }
 
-        private static bool DoesNotExistOnOpenList(int x, int y, int z)
+        private bool DoesNotExistOnOpenList(int x, int y, int z)
         {
             for (int i = 0; i < PATHFINDER_MAX_NODES; i++)
             {
@@ -677,7 +677,7 @@ namespace ClassicUO.Game
             return false;
         }
 
-        private static bool DoesNotExistOnClosedList(int x, int y, int z)
+        private bool DoesNotExistOnClosedList(int x, int y, int z)
         {
             for (int i = 0; i < PATHFINDER_MAX_NODES; i++)
             {
@@ -692,7 +692,7 @@ namespace ClassicUO.Game
             return false;
         }
 
-        private static int AddNodeToList
+        private int AddNodeToList
         (
             int list,
             int direction,
@@ -798,7 +798,7 @@ namespace ClassicUO.Game
             return -1;
         }
 
-        private static bool OpenNodes(PathNode node)
+        private bool OpenNodes(PathNode node)
         {
             bool found = false;
 
@@ -851,7 +851,7 @@ namespace ClassicUO.Game
             return found;
         }
 
-        private static int FindCheapestNode()
+        private int FindCheapestNode()
         {
             int cheapestCost = 9999999;
             int cheapestNode = -1;
@@ -888,7 +888,7 @@ namespace ClassicUO.Game
             return result;
         }
 
-        private static bool FindPath(int maxNodes)
+        private bool FindPath(int maxNodes)
         {
             int curNode = 0;
 
@@ -914,21 +914,24 @@ namespace ClassicUO.Game
                     int totalNodes = 0;
                     PathNode goalNode = _openList[_goalNode];
 
-                    while (goalNode.Parent != null && goalNode != goalNode.Parent)
-                    {
-                        goalNode = goalNode.Parent;
-                        totalNodes++;
+                    for (int i = 0; i < PATHFINDER_MAX_NODES * 2; i++) {
+                        if (goalNode.Parent != null && goalNode != goalNode.Parent) {
+                            goalNode = goalNode.Parent;
+                            totalNodes++;
+                        }
                     }
 
                     totalNodes++;
                     _pathSize = totalNodes;
                     goalNode = _openList[_goalNode];
 
-                    while (totalNodes != 0)
-                    {
-                        totalNodes--;
-                        _path[totalNodes] = goalNode;
-                        goalNode = goalNode.Parent;
+                    for (int i = 0; i < PATHFINDER_MAX_NODES * 2; i++) {
+                        if (totalNodes != 0)
+                        {
+                            totalNodes--;
+                            _path[totalNodes] = goalNode;
+                            goalNode = goalNode.Parent;
+                        }
                     }
 
                     break;
@@ -950,7 +953,7 @@ namespace ClassicUO.Game
             return true;
         }
 
-        public static bool WalkTo(int x, int y, int z, int distance)
+        public bool WalkTo(int x, int y, int z, int distance)
         {
             if (World.Player == null /*|| World.Player.Stamina == 0*/ || World.Player.IsParalyzed)
             {
@@ -1008,7 +1011,7 @@ namespace ClassicUO.Game
             return _pathSize != 0;
         }
 
-        public static PathNode[] CanWalkTo(int x, int y, int z, int distance, out int size)
+        public PathNode[] CanWalkTo(int x, int y, int z, int distance, out int size)
         {
             if (World.Player == null || World.Player.IsParalyzed) {
                 size = 0;
@@ -1065,7 +1068,7 @@ namespace ClassicUO.Game
             return _path;
         }
 
-        public static void ProcessAutoWalk()
+        public void ProcessAutoWalk()
         {
             if (AutoWalking && World.InGame && World.Player.Walker.StepsCount < Constants.MAX_STEP_COUNT && World.Player.Walker.LastStepRequestTime <= Time.Ticks)
             {
@@ -1092,7 +1095,7 @@ namespace ClassicUO.Game
             }
         }
 
-        public static void StopAutoWalk()
+        public void StopAutoWalk()
         {
             AutoWalking = false;
             _run = false;

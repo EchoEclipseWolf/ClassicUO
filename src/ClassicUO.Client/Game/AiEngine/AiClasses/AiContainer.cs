@@ -11,6 +11,7 @@ using ClassicUO.Game.AiEngine.Enums;
 using ClassicUO.Game.AiEngine.Helpers;
 using ClassicUO.Game.AiEngine.Tasks;
 using ClassicUO.Network;
+using ClassicUO.Game.Data;
 
 namespace ClassicUO.Game.AiEngine.AiClasses
 {
@@ -27,6 +28,7 @@ namespace ClassicUO.Game.AiEngine.AiClasses
         public List<AiContainer> SubContainers = new();
         public Point3D LastPosition = Point3D.Empty;
         public int MapIndex;
+        public string Name;
 
         public List<AIItem> _items = new();
 
@@ -122,6 +124,8 @@ namespace ClassicUO.Game.AiEngine.AiClasses
 
             for (int i = 0; i < 10; i++) {
                 if (SerialHelper.IsValid(Serial) && World.OPL.TryGetNameAndData(Serial, out string name, out string data)) {
+                    Name = name;
+
                     var match = _bagContentsFourNumberRegex.Match(data);
 
                     if (match.Success && match.Groups.Count > 4) {
@@ -203,7 +207,8 @@ namespace ClassicUO.Game.AiEngine.AiClasses
 
                         if (!string.IsNullOrEmpty(name) && !string.IsNullOrEmpty(data)) {
                             if (data.ToLower().Contains("contents")) {
-                                var container = new AiContainer(item2.Serial, this);
+                                var container = GetContainer(item2.Serial);
+                                container.ParentContainerSerial = Serial;
                                 container.ContainerItem = item2;
                                 allSubContainers.Add(container);
                             }
@@ -217,25 +222,24 @@ namespace ClassicUO.Game.AiEngine.AiClasses
             return true;
         }
 
-        private async Task<bool> UpdateSubContainers() {
+        private async Task<bool> UpdateSubContainers(bool recursive) {
             await UpdateSubContainerList();
 
             foreach (var subContainer in SubContainers) {
                 if (subContainer.ContainerItem != null && !ContainerIds.Ids.Contains(subContainer.ContainerItem.Graphic)) {
-                    int failed = 1;
                     continue;
                 }
 
-                if (await subContainer.UpdateCount()) {
-                    await subContainer.UpdateContents();
+                if (await subContainer.UpdateCount() && recursive) {
+                    await subContainer.UpdateContents(true);
                 }
             }
 
             return true;
         }
 
-        internal async Task<bool> UpdateContents() {
-            await UpdateSubContainers();
+        internal async Task<bool> UpdateContents(bool recursive) {
+            await UpdateSubContainers(recursive);
 
             var containerGumps = GumpHelper.GetContainerGrumps();
 
@@ -247,6 +251,8 @@ namespace ClassicUO.Game.AiEngine.AiClasses
                 if (ContainerItem == null) {
                     return true;
                 }
+
+                var wasGumpOpen = GumpHelper.GetContainerGrumpByItemSerial(Serial) != null;
 
                 var items = await ItemsHelper.GetContainerItems(ContainerItem, false);
 
@@ -273,6 +279,21 @@ namespace ClassicUO.Game.AiEngine.AiClasses
                         items = await ItemsHelper.GetContainerItems(ContainerItem, false);
 
                         if (items.Count > 0) {
+                            var backpack = World.Player.FindItemByLayer(Layer.Backpack);
+
+                            if (backpack != null && Serial == backpack.Serial) {
+                                wasGumpOpen = true;
+                            }
+
+                            if (!wasGumpOpen) {
+                                
+                                var gump = GumpHelper.GetContainerGrumpByItemSerial(Serial);
+
+                                if (gump != null) {
+                                    AiCore.GumpsToClose.Push(gump);
+                                    await Task.Delay(500);
+                                }
+                            }
                             break;
                         }
                     }
@@ -292,7 +313,7 @@ namespace ClassicUO.Game.AiEngine.AiClasses
                 }
 
                 _items = allItems;
-                await UpdateSubContainers();
+                await UpdateSubContainers(recursive);
             }
 
             return true;
@@ -332,7 +353,7 @@ namespace ClassicUO.Game.AiEngine.AiClasses
         }
 
         internal Point3D Point() {
-            return ContainerItem != null ? ContainerItem.Position.ToPoint3D() : Point3D.Empty;
+            return ContainerItem != null ? ContainerItem.Position.ToPoint3D() : LastPosition;
         }
 
         public override string ToString() {

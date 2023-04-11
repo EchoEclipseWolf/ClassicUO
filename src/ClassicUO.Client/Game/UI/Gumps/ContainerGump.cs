@@ -671,7 +671,7 @@ namespace ClassicUO.Game.UI.Gumps
 
             if (_data.ClosedSound != 0)
             {
-                Client.Game.Audio.PlaySound(_data.ClosedSound);
+                //Client.Game.Audio.PlaySound(_data.ClosedSound);
             }
         }
 

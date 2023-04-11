@@ -326,5 +326,9 @@ namespace ClassicUO.Game.UI.Controls
             _gameText = null;
             base.Dispose();
         }
+
+        public override string ToString() {
+            return $"UI HtmlControl: {Text}";
+        }
     }
 }

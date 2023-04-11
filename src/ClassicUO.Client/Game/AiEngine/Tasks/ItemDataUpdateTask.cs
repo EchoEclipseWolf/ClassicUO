@@ -27,6 +27,9 @@ namespace ClassicUO.Game.AiEngine.Tasks
         internal static List<AIItem> EquippedItems = new();
         internal static List<AIItem> AllEquipableItems = new();
 
+        public static AiContainer MasterLootContainer;
+        public static AiContainer TrashTokensContainer;
+
 
         public static int LowerReagentCost = 0;
         public static int LowerManaCost = 0;
@@ -70,6 +73,8 @@ namespace ClassicUO.Game.AiEngine.Tasks
         }
 
         public override async Task<bool> Pulse() {
+            
+
             if (_timer.ElapsedMilliseconds < DELAY)
             {
                 return false;
@@ -88,8 +93,21 @@ namespace ClassicUO.Game.AiEngine.Tasks
                 return false;
             }
 
-            //await PlayerBackpack.UpdateContents();
+            await PlayerBackpack.UpdateContents(false);
 
+            foreach (var playerBackpackSubContainer in PlayerBackpack.SubContainers) {
+                if (playerBackpackSubContainer.Name.ToLower().Contains("master storage")) {
+                    MasterLootContainer = playerBackpackSubContainer;
+                }
+
+                if (playerBackpackSubContainer.Name.ToLower().Contains("tokens backpack")) {
+                    TrashTokensContainer = playerBackpackSubContainer;
+                }
+            }
+
+            if (!AiSettings.Instance.UpdateContainers) {
+                return false;
+            }
 
             var equippedItemTuples = ItemsHelper.GetEquippedItemsWithData();
             var equippedItems = new List<AIItem>();
@@ -116,16 +134,15 @@ namespace ClassicUO.Game.AiEngine.Tasks
             Luck = equippedItems.Where(equippedItem => equippedItem.Luck > 0).Sum(equippedItem => equippedItem.Luck);
 
 
-            var backpackPlayerItemsTuple = await ItemsHelper.GetPlayerBackpackItems(false);
+            var backpackPlayerItemsTuple = PlayerBackpack.GetItems();
             var equippableBackpackItems = new List<AIItem>();
 
-            foreach (var tuple in backpackPlayerItemsTuple) {
-                var item = tuple.Item2;
+            foreach (var item in backpackPlayerItemsTuple.Where(i => i.Item != null)) {
                 if (SerialHelper.IsValid(item.Serial) && World.OPL.TryGetNameAndData(item.Serial, out string name, out string data)) {
-                    var layer = (Layer) item.ItemData.Layer;
+                    var layer = (Layer) item.Item.ItemData.Layer;
 
                     if (IsEquippable(layer)) {
-                        var aiItem = new AIItem(item.Serial, new Tuple<Item, string, Layer, string>(item, data, layer, name));
+                        var aiItem = new AIItem(item.Serial, new Tuple<Item, string, Layer, string>(item.Item, data, layer, name));
                         equippableBackpackItems.Add(aiItem);
 
                         if (AllEquipableItems.All(i => i.Serial != item.Serial)) {
@@ -139,36 +156,43 @@ namespace ClassicUO.Game.AiEngine.Tasks
                 }
             }
 
-            var containerGumpsToParse = new List<ContainerGump>();
-            foreach (var gump in GumpHelper.GetContainerGrumps()) {
-                if (gump.LocalSerial > 0) {
-                    var item = World.Items.Get(gump.LocalSerial);
-                    if (item != null && item.Serial != PlayerBackpack.Serial && !PlayerBackpack.ContainsSerial(item.Serial, true)) {
-                        containerGumpsToParse.Add(gump);
+            var searchOtherCOntainers = false;
+
+            if (searchOtherCOntainers) {
+                var containerGumpsToParse = new List<ContainerGump>();
+
+                foreach (var gump in GumpHelper.GetContainerGrumps()) {
+                    if (gump.LocalSerial > 0) {
+                        var item = World.Items.Get(gump.LocalSerial);
+
+                        if (item != null && item.Serial != PlayerBackpack.Serial && !PlayerBackpack.ContainsSerial(item.Serial, true)) {
+                            containerGumpsToParse.Add(gump);
+                        }
                     }
                 }
-            }
 
-            var otherOpenContainers = new List<AiContainer>();
-            var allOtherOpenItems = new List<AIItem>();
-            foreach (var containerGump in containerGumpsToParse) {
-                continue;
-                var item = World.Items.Get(containerGump.LocalSerial);
-                if (item != null && SerialHelper.IsValid(item.Serial)) {
-                    var containerItem = AiContainer.GetContainer(item.Serial);
-                    await containerItem.UpdateContents();
+                var otherOpenContainers = new List<AiContainer>();
+                var allOtherOpenItems = new List<AIItem>();
 
-                    allOtherOpenItems.AddRange(containerItem.GetItems(true));
-                    otherOpenContainers.Add(containerItem);
-                }
-            }
+                foreach (var containerGump in containerGumpsToParse) {
+                    var item = World.Items.Get(containerGump.LocalSerial);
 
-            foreach (var item in allOtherOpenItems.Where(i => IsEquippable(i.Slot))) {
-                if (AllEquipableItems.Any(i => i.Serial == item.Serial)) {
-                    continue;
+                    if (item != null && SerialHelper.IsValid(item.Serial)) {
+                        var containerItem = AiContainer.GetContainer(item.Serial);
+                        await containerItem.UpdateContents(true);
+
+                        allOtherOpenItems.AddRange(containerItem.GetItems(true));
+                        otherOpenContainers.Add(containerItem);
+                    }
                 }
 
-                AllEquipableItems.Add(item);
+                foreach (var item in allOtherOpenItems.Where(i => IsEquippable(i.Slot))) {
+                    if (AllEquipableItems.Any(i => i.Serial == item.Serial)) {
+                        continue;
+                    }
+
+                    AllEquipableItems.Add(item);
+                }
             }
 
             foreach (var item in AllEquipableItems) {

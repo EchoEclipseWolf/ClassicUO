@@ -79,25 +79,30 @@ namespace ClassicUO.Game.GameObjects
             var foundNavPoint = false;
             var isPathPoint = false;
 
-            if (AiSettings.Instance != null && (AiSettings.Instance.NavigationTesting || AiSettings.Instance.NavigationRecording) && Navigation.CurrentMesh != null && !Navigation.IsLoading) {
-                var point = new Point3D(Position.X, Position.Y, Position.Z);
-                var meshPoints = Navigation.GetNode(point, World.MapIndex);
+            
+                
+            
 
+            var point = new Point3D(Position.X, Position.Y, Position.Z);
+            var meshPoints = Navigation.GetNode(point, World.MapIndex);
+
+            if (AiSettings.Instance != null && (AiSettings.Instance.NavigationTesting || AiSettings.Instance.NavigationRecording) && Navigation.CurrentMesh != null &&
+                !Navigation.IsLoading) {
                 if (meshPoints != null) {
                     foundNavPoint = true;
                 }
+            }
 
-                if (Navigation.Path.Count > 0) {
-                    try {
-                        var pathNode = Navigation.Path.FirstOrDefault(n => n != null && n.Position.Distance(point) < 7 && (int)n.Position.X == (int)point.X && (int)n.Position.Y == (int)point.Y);
+            if (Navigation.Path.Count > 0) {
+                try {
+                    var pathNode = Navigation.Path.FirstOrDefault(n => n != null && n.Position.Distance(point) < 7 && (int)n.Position.X == (int)point.X && (int)n.Position.Y == (int)point.Y);
 
-                        if (pathNode != null) {
-                            isPathPoint = true;
-                        }
+                    if (pathNode != null) {
+                        isPathPoint = true;
                     }
-                    catch (Exception e) {
-                        Console.WriteLine(e);
-                    }
+                }
+                catch (Exception e) {
+                    Console.WriteLine(e);
                 }
             }
 

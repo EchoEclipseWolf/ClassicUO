@@ -1725,7 +1725,7 @@ namespace ClassicUO.Network
                     int y = World.Player.Y;
                     sbyte z = World.Player.Z;
 
-                    if (Pathfinder.CanWalk(ref pdir, ref x, ref y, ref z) && World.Player.Direction != pdir)
+                    if (World.Pathfinder.CanWalk(ref pdir, ref x, ref y, ref z) && World.Player.Direction != pdir)
                     {
                         World.Player.Walk(pdir, false);
                     }
@@ -1905,7 +1905,7 @@ namespace ClassicUO.Network
             ushort y = p.ReadUInt16BE();
             ushort z = p.ReadUInt16BE();
 
-            Pathfinder.WalkTo(x, y, z, 0);
+            World.Pathfinder.WalkTo(x, y, z, 0);
         }
 
         private static void UpdateContainedItems(ref StackDataReader p)

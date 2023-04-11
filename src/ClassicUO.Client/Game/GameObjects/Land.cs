@@ -47,11 +47,13 @@ namespace ClassicUO.Game.GameObjects
             Constants.PREDICTABLE_TILE_COUNT,
             l =>
             {
-                l.IsDestroyed = false;
-                l.AlphaHue = 255;
-                l.NormalTop = l.NormalRight = l.NormalLeft = l.NormalBottom = Vector3.Zero;
-                l.YOffsets.Top = l.YOffsets.Right = l.YOffsets.Left = l.YOffsets.Bottom = 0;
-                l.MinZ = l.AverageZ = 0;
+                if (l != null) {
+                    l.IsDestroyed = false;
+                    l.AlphaHue = 255;
+                    l.NormalTop = l.NormalRight = l.NormalLeft = l.NormalBottom = Vector3.Zero;
+                    l.YOffsets.Top = l.YOffsets.Right = l.YOffsets.Left = l.YOffsets.Bottom = 0;
+                    l.MinZ = l.AverageZ = 0;
+                }
             }
         );
 

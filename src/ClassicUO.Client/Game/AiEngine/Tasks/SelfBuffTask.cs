@@ -28,7 +28,7 @@ namespace ClassicUO.Game.AiEngine.Tasks
 
         private bool HasBuff(BuffIconType type)
         {
-            var buffIcons = World.Player.BuffIcons;
+            var buffIcons = World.Player.BuffIcons.ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
             foreach (var buff in buffIcons)
             {
                 if (buff.Key == type)

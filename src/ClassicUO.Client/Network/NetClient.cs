@@ -457,7 +457,6 @@ namespace ClassicUO.Network
                         }
 
                         _circularBuffer.Enqueue(buffer.AsSpan(0, received));
-
                         ExtractPackets();
                     }
                     else

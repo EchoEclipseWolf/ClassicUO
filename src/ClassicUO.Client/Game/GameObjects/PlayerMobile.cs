@@ -30,6 +30,7 @@
 
 #endregion
 
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -48,7 +49,7 @@ namespace ClassicUO.Game.GameObjects
 {
     internal class PlayerMobile : Mobile
     {
-        private readonly Dictionary<BuffIconType, BuffIcon> _buffIcons = new Dictionary<BuffIconType, BuffIcon>();
+        public readonly ConcurrentDictionary<BuffIconType, BuffIcon> BuffIcons = new ConcurrentDictionary<BuffIconType, BuffIcon>();
 
         public PlayerMobile(uint serial) : base(serial)
         {
@@ -74,7 +75,6 @@ namespace ClassicUO.Game.GameObjects
 
         public Skill[] Skills { get; }
         public override bool InWarMode { get; set; }
-        public IReadOnlyDictionary<BuffIconType, BuffIcon> BuffIcons => _buffIcons;
 
         public ref Ability PrimaryAbility => ref Abilities[0];
         public ref Ability SecondaryAbility => ref Abilities[1];
@@ -262,18 +262,17 @@ namespace ClassicUO.Game.GameObjects
 
         public void AddBuff(BuffIconType type, ushort graphic, uint time, string text)
         {
-            _buffIcons[type] = new BuffIcon(type, graphic, time, text);
+            BuffIcons[type] = new BuffIcon(type, graphic, time, text);
         }
 
 
         public bool IsBuffIconExists(BuffIconType graphic)
         {
-            return _buffIcons.ContainsKey(graphic);
+            return BuffIcons.ContainsKey(graphic);
         }
 
-        public void RemoveBuff(BuffIconType graphic)
-        {
-            _buffIcons.Remove(graphic);
+        public void RemoveBuff(BuffIconType graphic) {
+            BuffIcons.TryRemove(graphic, out _);
         }
 
         public void UpdateAbilities()
@@ -1384,7 +1383,7 @@ namespace ClassicUO.Game.GameObjects
             if (!World.Player.IsDead && ProfileManager.CurrentProfile.AutoOpenDoors)
             {
                 int x = X, y = Y, z = Z;
-                Pathfinder.GetNewXY((byte) Direction, ref x, ref y);
+                World.Pathfinder.GetNewXY((byte) Direction, ref x, ref y);
 
                 if (World.Items.Values.Any(s => s.ItemData.IsDoor && s.X == x && s.Y == y && s.Z - 15 <= z && s.Z + 15 >= z))
                 {
@@ -1586,7 +1585,7 @@ namespace ClassicUO.Game.GameObjects
                 int newY = y;
                 sbyte newZ = z;
 
-                if (!Pathfinder.CanWalk(ref newDir, ref newX, ref newY, ref newZ))
+                if (!World.Pathfinder.CanWalk(ref newDir, ref newX, ref newY, ref newZ))
                 {
                     return false;
                 }
@@ -1612,7 +1611,7 @@ namespace ClassicUO.Game.GameObjects
                 int newY = y;
                 sbyte newZ = z;
 
-                if (!Pathfinder.CanWalk(ref newDir, ref newX, ref newY, ref newZ))
+                if (!World.Pathfinder.CanWalk(ref newDir, ref newX, ref newY, ref newZ))
                 {
                     if ((oldDirection & Direction.Mask) == newDir)
                     {

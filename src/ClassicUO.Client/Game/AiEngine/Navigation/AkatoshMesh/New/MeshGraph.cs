@@ -204,10 +204,7 @@ namespace AkatoshQuester.Helpers.Cartography
                 //GameActions.MessageOverhead($"Added link with 0 count", World.Player.Serial);
             }
 
-            Console.WriteLine($"[Navigation]: Saved Point: Linked {candidates.Count}.");
-
-            var testNode = Navigation.CurrentMesh.FindById(newNode.Id);
-
+            //Console.WriteLine($"[Navigation]: Saved Point: Linked {candidates.Count}.");
             return true;
         }
 

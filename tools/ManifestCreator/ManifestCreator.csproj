@@ -1,6 +1,6 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <Configurations>Debug;Release;DebugLive</Configurations>
+    <Configurations>Debug;Release;DebugLive;DebugStaff</Configurations>
   </PropertyGroup>
 </Project>

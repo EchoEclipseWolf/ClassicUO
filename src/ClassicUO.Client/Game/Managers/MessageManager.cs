@@ -280,7 +280,7 @@ namespace ClassicUO.Game.Managers
 
             MessageCombiner foundCombiner = null;
 
-            if (text.ToLower().Contains("receiving a bonus loot item from".ToLower()) ||
+            /*if (text.ToLower().Contains("receiving a bonus loot item from".ToLower()) ||
                 text.ToLower().Contains("You have gained in Valor".ToLower())) {
                 return;
             }
@@ -360,9 +360,9 @@ namespace ClassicUO.Game.Managers
                 MessageReceived.Raise(new MessageEventArgs(combiner.Parent, combiner.GetCombinedString(), name, combiner.Hue, combiner.MessageType, combiner.Font, combiner.TextType, combiner.IsUnicode, lang), combiner.Parent);
             }
 
-            if (foundCombiner == null) {
+            if (foundCombiner == null) {*/
                 MessageReceived.Raise(new MessageEventArgs(parent, text, name, hue, type, font, textType, unicode, lang), parent);
-            }
+            //}
         }
 
         public static void OnLocalizedMessage(Entity entity, MessageEventArgs args)
