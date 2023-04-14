@@ -50,6 +50,7 @@ namespace ClassicUO.Game.GameObjects
     internal class PlayerMobile : Mobile
     {
         public readonly ConcurrentDictionary<BuffIconType, BuffIcon> BuffIcons = new ConcurrentDictionary<BuffIconType, BuffIcon>();
+        private static bool _startedAICore;
 
         public PlayerMobile(uint serial) : base(serial)
         {
@@ -61,16 +62,20 @@ namespace ClassicUO.Game.GameObjects
                 Skills[i] = new Skill(skill.Name, skill.Index, skill.HasAction);
             }
 
-            Task.Run
-            (
-                async () => {
-                    if (AiCore.Instance == null) {
-                        new AiCore();
-                    }
+            if (!_startedAICore) {
+                Task.Run
+                (
+                    async () => {
+                        _startedAICore = true;
 
-                    await AiCore.Instance.Loop();
-                }
-            );
+                        if (AiCore.Instance == null) {
+                            new AiCore();
+                        }
+
+                        await AiCore.Instance.Loop();
+                    }
+                );
+            }
         }
 
         public Skill[] Skills { get; }
