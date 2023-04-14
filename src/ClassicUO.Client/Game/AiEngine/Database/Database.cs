@@ -78,6 +78,8 @@ namespace ClassicUO.DatabaseUtility
 
                 mob.MapName = MobileCache.MapNameFromIndex(World.MapIndex);
 
+                completeName = completeName.Replace("'", "");
+
                 var command = _connection.CreateCommand();
                 command.CommandText = BuildAddCommandFromCachedMobile(mob, mobile, completeName, level);
                 command.ExecuteNonQuery();
@@ -98,7 +100,8 @@ namespace ClassicUO.DatabaseUtility
         private static int RowCountForMobile(string name, int x, int y) {
             SQLiteCommand command;
             command = _connection.CreateCommand();
-            command.CommandText = $"SELECT * FROM Mobiles WHERE Name='{name}' AND X={x} AND Y={y}";
+            var safeName = name.Replace("'", "");
+            command.CommandText = $"SELECT * FROM Mobiles WHERE Name='{safeName}' AND X={x} AND Y={y}";
             var reader = command.ExecuteReader();
 
             int count = 0;
