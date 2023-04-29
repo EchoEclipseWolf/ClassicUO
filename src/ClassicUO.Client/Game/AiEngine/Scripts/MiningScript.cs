@@ -114,12 +114,12 @@ namespace ClassicUO.Game.AiEngine.Scripts
         public override async Task<bool> Pulse() {
             var picks = await HasPickaxe();
             if (picks.Count == 0) {
-                if (HasPickaxesInHouse()) {
+                /*if (HasPickaxesInHouse()) {
                     await GrabMorePickaxes();
                 }
-                else {
+                else {*/
                     await GoHome();
-                }
+                //}
 
                 return false;
             }
@@ -264,7 +264,7 @@ namespace ClassicUO.Game.AiEngine.Scripts
         }
 
         private async Task<List<AIItem>> HasPickaxe() {
-            var picks = await ItemsHelper.GetPlayerBackpackItemsById(true, 0x0E86, 0);
+            var picks = await ItemsHelper.GetPlayerBackpackItemsById(false, 0x0F39, 0);
 
             return picks;
         }

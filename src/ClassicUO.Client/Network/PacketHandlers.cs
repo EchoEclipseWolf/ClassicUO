@@ -3008,9 +3008,6 @@ namespace ClassicUO.Network
                     facet = p.ReadUInt16BE();
                 }
 
-
-                facet = 5;
-
                 if (MultiMapLoader.Instance.HasFacet(facet))
                 {
                     gump.SetMapTexture

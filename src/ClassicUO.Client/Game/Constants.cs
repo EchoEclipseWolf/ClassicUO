@@ -126,7 +126,7 @@ namespace ClassicUO.Game
 
         public const int WEATHER_TIMER = 6 * 60 * 1000;
 
-        public const int PREDICTABLE_CHUNKS = 300;
+        public const int PREDICTABLE_CHUNKS = 3000;
         public const int PREDICTABLE_TILE_COUNT = 64 * PREDICTABLE_CHUNKS;
         public const int PREDICTABLE_STATICS = PREDICTABLE_TILE_COUNT * 2;
         public const int PREDICTABLE_MULTIS = PREDICTABLE_TILE_COUNT * 4;

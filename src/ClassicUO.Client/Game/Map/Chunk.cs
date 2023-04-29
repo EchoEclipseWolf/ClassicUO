@@ -48,8 +48,10 @@ namespace ClassicUO.Game.Map
             Constants.PREDICTABLE_CHUNKS,
             c =>
             {
-                c.LastAccessTime = Time.Ticks + Constants.CLEAR_TEXTURES_DELAY;
-                c.IsDestroyed = false;
+                if (c != null) {
+                    c.LastAccessTime = Time.Ticks + Constants.CLEAR_TEXTURES_DELAY;
+                    c.IsDestroyed = false;
+                }
             }
         );
 
@@ -66,6 +68,11 @@ namespace ClassicUO.Game.Map
         public static Chunk Create(int x, int y)
         {
             Chunk c = _pool.GetOne();
+
+            while (c == null) {
+                c = _pool.GetOne();
+            }
+
             c.X = x;
             c.Y = y;
 

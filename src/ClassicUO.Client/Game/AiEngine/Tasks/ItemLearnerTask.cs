@@ -19,8 +19,8 @@ namespace ClassicUO.Game.AiEngine.Tasks {
         private Stopwatch _timer = Stopwatch.StartNew();
         private const int DELAY = 500;
 
-        private const string GOLD_REGEX_STRING = "Gold:\\s*(\\d+)";
-        private const string TOKENS_REGEX_STRING = "Tokens:\\s*(\\d+)";
+        private const string GOLD_REGEX_STRING = "Gold:\\s+([\\d,]+)";
+        private const string TOKENS_REGEX_STRING = "Tokens:\\s+([\\d,]+)";
         private readonly Regex _goldRegex = new Regex(GOLD_REGEX_STRING);
         private readonly Regex _tokensRegex = new Regex(TOKENS_REGEX_STRING);
         private int _startingGold = -1;
@@ -56,6 +56,7 @@ namespace ClassicUO.Game.AiEngine.Tasks {
 
                     if (match.Success && match.Groups.Count > 1 && tokenMatch.Success && tokenMatch.Groups.Count > 1) {
                         var goldString = match.Groups[1].Value;
+                        goldString = goldString.Replace(",", "");
 
                         if (int.TryParse(goldString, out var gold)) {
                             if (_startingGold == -1 || ShouldResetGoldTokens) {
@@ -69,6 +70,7 @@ namespace ClassicUO.Game.AiEngine.Tasks {
                         }
 
                         var tokenString = tokenMatch.Groups[1].Value;
+                        tokenString = tokenString.Replace(",", "");
 
                         if (int.TryParse(tokenString, out var tokens)) {
                             if (_startingTokens == -1 || ShouldResetGoldTokens) {

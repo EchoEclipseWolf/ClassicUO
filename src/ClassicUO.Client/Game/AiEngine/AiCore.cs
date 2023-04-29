@@ -23,13 +23,14 @@ namespace ClassicUO.Game.AiEngine {
         public Dictionary<string, BaseAITask> Tasks = new();
         public Dictionary<string, BaseAITask> MainScripts = new();
 
-        internal static ConcurrentStack<Gump> GumpsToClose = new ConcurrentStack<Gump>();
-        internal static ConcurrentStack<Tuple<Gump, int>> GumpsToClickButton = new ConcurrentStack<Tuple<Gump, int>>();
+        internal static ConcurrentStack<Gump> GumpsToClose = new();
+        internal static ConcurrentStack<Tuple<Gump, int>> GumpsToClickButton = new();
 
         public static bool IsScriptRunning { get; private set; }
-        private static bool _needToSendOnStart = false;
-        private static bool _hasStartup = false;
-        private static bool _hasClosedGumpsStart = false;
+        private static bool _needToSendOnStart;
+        private static bool _hasStartup;
+        private static bool _hasClosedGumpsStart;
+        private static bool _aiEnabled = true;
 
         public AiCore() {
 
@@ -63,13 +64,25 @@ namespace ClassicUO.Game.AiEngine {
             var miningScript = new MiningScript();
             MainScripts[miningScript.Name] = miningScript;
 
+            var uoMapToHeightmap = new UoMapToHeightmap();
+            MainScripts[uoMapToHeightmap.Name] = uoMapToHeightmap;
+
+            var exportAreaToUnreal = new ExportAreaToUnreal();
+            MainScripts[exportAreaToUnreal.Name] = exportAreaToUnreal;
+
             IsScriptRunning = false;
 
             Navigation.Start();
         }
 
+        private static void ResetBackToStart() {
+            _hasStartup = false;
+            _hasClosedGumpsStart = false;
+
+        }
+
         public async Task<bool> Loop() {
-            while (true) {
+            while (_aiEnabled) {
                 try {
                     await Pulse();
                 }
@@ -83,7 +96,7 @@ namespace ClassicUO.Game.AiEngine {
         public async Task<bool> Pulse() {
             if (World.Player == null || World.Player.Name == null || World.Player.Name.Length == 0) {
                 await Task.Delay(10);
-                _hasStartup = false;
+                ResetBackToStart();
                 return true;
             }
 
@@ -113,8 +126,6 @@ namespace ClassicUO.Game.AiEngine {
                     weather.Generate(WeatherType.WT_RAIN, Byte.MaxValue, 50);
                 }
             }
-
-           
 
             if (!_hasClosedGumpsStart) {
                 try {
@@ -212,9 +223,7 @@ namespace ClassicUO.Game.AiEngine {
         }
 
         internal void UpdateGroundItem(Item item) {
-            if (item.Graphic == 0x1F18) {
-                int bob = 1;
-            }
+            
         }
     }
 }

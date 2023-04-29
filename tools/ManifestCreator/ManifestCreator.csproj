@@ -3,4 +3,9 @@
     <OutputType>Exe</OutputType>
     <Configurations>Debug;Release;DebugLive;DebugStaff</Configurations>
   </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Update="System.Memory" Version="4.5.5" />
+    <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+    <PackageReference Update="System.Text.Encoding.CodePages" Version="7.0.0" />
+  </ItemGroup>
 </Project>

@@ -100,7 +100,7 @@ namespace ClassicUO.Game.GameObjects
             var foundNavPoint = false;
             var isPathPoint = false;
 
-            if (AiSettings.Instance != null && (AiSettings.Instance.NavigationTesting || AiSettings.Instance.NavigationRecording) && Navigation.CurrentMesh != null && !Navigation.IsLoading) {
+            /*if (AiSettings.Instance != null && (AiSettings.Instance.NavigationTesting || AiSettings.Instance.NavigationRecording) && Navigation.CurrentMesh != null && !Navigation.IsLoading) {
                 var point = new Point3D(Position.X, Position.Y, Position.Z);
                 var meshPoints = Navigation.GetNode(point, World.MapIndex);
 
@@ -120,7 +120,7 @@ namespace ClassicUO.Game.GameObjects
                         Console.WriteLine(e);
                     }
                 }
-            }
+            }*/
 
             Profile currentProfile = ProfileManager.CurrentProfile;
 

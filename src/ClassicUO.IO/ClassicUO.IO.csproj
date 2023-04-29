@@ -11,6 +11,12 @@
     <ProjectReference Include="..\..\external\MP3Sharp\MP3Sharp\MP3Sharp.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageReference Update="System.Memory" Version="4.5.5" />
+    <PackageReference Update="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
+    <PackageReference Update="System.Text.Encoding.CodePages" Version="7.0.0" />
+  </ItemGroup>
+
   <!--<ItemGroup>
     <PackageReference Include="MP3Sharp" Version="1.0.5" />
   </ItemGroup>-->

@@ -62,7 +62,7 @@ namespace ClassicUO.Game.GameObjects
             var foundNavPoint = false;
             var isPathPoint = false;
 
-            var point = new Point3D(Position.X, Position.Y, Position.Z);
+            /*var point = new Point3D(Position.X, Position.Y, Position.Z);
             var meshPoints = Navigation.GetNode(point, World.MapIndex);
 
             if (AiSettings.Instance != null && (AiSettings.Instance.NavigationTesting || AiSettings.Instance.NavigationRecording) && Navigation.CurrentMesh != null &&
@@ -83,7 +83,7 @@ namespace ClassicUO.Game.GameObjects
                 catch (Exception e) {
                     Console.WriteLine(e);
                 }
-            }
+            }*/
 
             if (ProfileManager.CurrentProfile.HighlightGameObjects && SelectedObject.Object == this)
             {

@@ -44,9 +44,11 @@ namespace ClassicUO.Game.GameObjects
             Constants.PREDICTABLE_STATICS,
             s =>
             {
-                s.IsDestroyed = false;
-                s.AlphaHue = 0;
-                s.FoliageIndex = 0;
+                if (s != null) {
+                    s.IsDestroyed = false;
+                    s.AlphaHue = 0;
+                    s.FoliageIndex = 0;
+                }
             }
         );
 
@@ -63,6 +65,11 @@ namespace ClassicUO.Game.GameObjects
         public static Static Create(ushort graphic, ushort hue, int index)
         {
             Static s = _pool.GetOne();
+
+            while (s == null) {
+                s = _pool.GetOne();
+            }
+
             s.Graphic = s.OriginalGraphic = graphic;
             s.Hue = hue;
             s.UpdateGraphicBySeason();
@@ -114,6 +121,10 @@ namespace ClassicUO.Game.GameObjects
 
             base.Destroy();
             _pool.ReturnOne(this);
+        }
+
+        public override string ToString() {
+            return $"Static: {Name}  Z: {Position.Z}  Graphic: {Graphic}";
         }
     }
 }

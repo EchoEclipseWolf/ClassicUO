@@ -25,6 +25,18 @@ namespace ClassicUO.AiEngine.AiEngineTasks
         {
         }
 
+        public override async Task<bool> Start() {
+            if (!await base.Start()) {
+                return false;
+            }
+
+            if (ItemDataUpdateTask.PlayerBackpack != null) {
+                await ItemDataUpdateTask.PlayerBackpack.UpdateContents(true);
+            }
+
+            return true;
+        }
+
         public override async Task<bool> Pulse() {
             if (ItemDataUpdateTask.MasterLootContainer == null || ItemDataUpdateTask.TrashTokensContainer == null) {
                 GameActions.MessageOverhead($"Failed to find master loot storage or trash tokens bag", Player.Serial);
