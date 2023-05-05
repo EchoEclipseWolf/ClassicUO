@@ -495,17 +495,31 @@ namespace ClassicUO.Game.UI.Gumps
 
             public override void Update()
             {
-                base.Update();
+                try {
+                    base.Update();
+                }
+                catch (Exception e) {
+                    Console.WriteLine(e);
+
+                    return;
+                }
 
                 if (!IsVisible)
                 {
                     return;
                 }
 
-                _scrollBar.X = X + Width - (_scrollBar.Width >> 1) + 5;
-                _scrollBar.Height = Height;
-                CalculateScrollBarMaxValue();
-                _scrollBar.IsVisible = _scrollBar.MaxValue > _scrollBar.MinValue;
+                try {
+                    _scrollBar.X = X + Width - (_scrollBar.Width >> 1) + 5;
+                    _scrollBar.Height = Height;
+                    CalculateScrollBarMaxValue();
+                    _scrollBar.IsVisible = _scrollBar.MaxValue > _scrollBar.MinValue;
+                }
+                catch (Exception e) {
+                    Console.WriteLine(e);
+                    _entries.Clear();
+                }
+                
             }
 
             private void CalculateScrollBarMaxValue()

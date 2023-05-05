@@ -101,7 +101,7 @@ namespace ClassicUO.NavigationNew.AkatoshMesh.New
 
             Directory.CreateDirectory(GetSavePathDir);
 
-            File.WriteAllText(GetSavePath, JsonConvert.SerializeObject(PathCaches));
+            //File.WriteAllText(GetSavePath, JsonConvert.SerializeObject(PathCaches));
         }
 
         public static string GetSavePathDir

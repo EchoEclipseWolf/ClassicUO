@@ -66,7 +66,7 @@ namespace ClassicUO.Game.UI.Gumps.Login
             byte font;
             ushort hue;
 
-            if (Client.Version < ClientVersion.CV_706400)
+            if (Client.Version < ClientVersion.CV_706400 || true)
             {
                 _buttonNormal = 0x15A4;
                 _buttonOver = 0x15A5;
@@ -121,7 +121,7 @@ namespace ClassicUO.Game.UI.Gumps.Login
 
                 Add
                 (
-                    new Label(ResGumps.LoginToUO, false, HUE, font: 2)
+                    new Label("Login to Immortal Realms", false, HUE, font: 2)
                     {
                         X = 253,
                         Y = 305
