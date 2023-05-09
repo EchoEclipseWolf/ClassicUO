@@ -13,22 +13,29 @@ namespace ClassicUO.Game.AiEngine.Helpers
         {
             var stopwatch = Stopwatch.StartNew();
 
-            while (true)
-            {
-                try {
-                    if (condition()) {
-                        return true;
+            try {
+                while (true)
+                {
+                    try {
+                        if (condition()) {
+                            return true;
+                        }
+                    }
+                    catch (Exception e) {
+                        Console.WriteLine(e);
+                    }
+
+                    if (stopwatch.ElapsedMilliseconds > timeout)
+                    {
+                        return false;
                     }
                 }
-                catch (Exception e) {
-                    Console.WriteLine(e);
-                }
-
-                if (stopwatch.ElapsedMilliseconds > timeout)
-                {
-                    return false;
-                }
             }
+            catch (Exception e) {
+                //Console.WriteLine(e);
+                await Task.Delay(timeout);
+            }
+            
 
             return true;
         }

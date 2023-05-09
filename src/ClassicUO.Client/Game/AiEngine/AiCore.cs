@@ -63,6 +63,9 @@ namespace ClassicUO.Game.AiEngine {
 
             var miningScript = new MiningScript();
             MainScripts[miningScript.Name] = miningScript;
+            
+            var bodCollectorScript = new BODCollectorScript();
+            MainScripts[bodCollectorScript.Name] = bodCollectorScript;
 
             var uoMapToHeightmap = new UoMapToHeightmap();
             MainScripts[uoMapToHeightmap.Name] = uoMapToHeightmap;

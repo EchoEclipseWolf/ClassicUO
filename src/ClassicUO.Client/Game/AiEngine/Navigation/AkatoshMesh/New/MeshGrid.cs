@@ -101,7 +101,9 @@ namespace ClassicUO.AiEngine
                         return null;
                     }
                     return nodes.FirstOrDefault();
-                } else if (nodes.Count > 1) {
+                } 
+                
+                if (nodes.Count > 1) {
                     Node bestNode = null;
                     double bestDistance = distance + 1;
 

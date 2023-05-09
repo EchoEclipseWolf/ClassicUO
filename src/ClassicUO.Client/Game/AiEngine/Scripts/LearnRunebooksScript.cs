@@ -154,8 +154,7 @@ namespace ClassicUO.Game.AiEngine.Scripts
         private async Task<bool> TeleportToRune(Gump gump, int index) {
             var previousLocation = new Point3D(World.Player.Position.X, World.Player.Position.Y, World.Player.Position.Z);
             var previousMapId = World.MapIndex;
-
-            gump.OnButtonClick(50 + index);
+            AiCore.GumpsToClickButton.Push(new Tuple<Gump, int>(gump, 50 + index));
             await Task.Delay(500);
 
             await WaitForHelper.WaitFor(() => previousLocation.Distance() > 8.0f || World.MapIndex != previousMapId, 15000);

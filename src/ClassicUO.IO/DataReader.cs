@@ -254,7 +254,7 @@ namespace ClassicUO.IO
         {
             if (Position + size > Length)
             {
-#if DEBUG
+#if DEBUGA
                 throw new IndexOutOfRangeException();
 #else
                 ClassicUO.Utility.Logging.Log.Error($"size out of range. {Position + size} > {Length}");

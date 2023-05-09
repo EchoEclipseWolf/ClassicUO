@@ -279,6 +279,27 @@ namespace ClassicUO.Game.AiEngine.Helpers
 
             return null;
         }
+        
+        internal static Gump GetBulkOrderAcceptanceGump() {
+            try {
+                var gumps = UIManager.Gumps.ToList();
+
+                foreach (var gump in gumps.Where(g => g != null && g.Children.Count > 0)) {
+                    foreach (var child in gump.Children) {
+                        if (child is HtmlControl htmlControl) {
+                            if (htmlControl.Text.ToLower().Contains("Do you want to accept this order?".ToLower())) {
+                                return gump;
+                            }
+                        }
+                    }
+                }
+            }
+            catch (Exception) {
+                return null;
+            }
+
+            return null;
+        }
     }
 
     

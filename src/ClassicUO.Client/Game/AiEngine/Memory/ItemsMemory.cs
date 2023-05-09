@@ -47,6 +47,7 @@ namespace ClassicUO.Game.AiEngine.Memory
 
         public ConcurrentStack<SingleItemMemory> Runebooks = new();
         public List<AiContainer> HouseContainers = new();
+        public ConcurrentDictionary<BodKeys, DateTime> BodNextAvailableTimes = new();
 
         internal void AddRunebook(Item item, uint containerSerial, ItemLocationEnum itemLocation) {
             if (item == null) {
@@ -65,6 +66,25 @@ namespace ClassicUO.Game.AiEngine.Memory
                 existing.MovedContainer(containerSerial);
                 SaveFile(FILENAME);
             }
+        }
+
+        internal void AddBodNextAvailableTime(BodKeys bodKey, TimeSpan howLongUntilReady) {
+            if (BodNextAvailableTimes.ContainsKey(bodKey)) {
+                BodNextAvailableTimes[bodKey] = DateTime.Now.Add(howLongUntilReady);
+            }
+            else {
+                BodNextAvailableTimes.TryAdd(bodKey, DateTime.Now.Add(howLongUntilReady));
+            }
+
+            SaveFile(FILENAME);
+        }
+
+        internal bool IsBodReadyForTry(BodKeys bodyKey) {
+            if(BodNextAvailableTimes.TryGetValue(bodyKey, out var nextAvailableTime)) {
+                return DateTime.Now > nextAvailableTime;
+            }
+
+            return true;
         }
     }
 }
