@@ -36,10 +36,10 @@ jobs:
         git config --global url."https://".insteadOf git://
         git submodule update --init --recursive
         
-    - name: Setup .NET 7
+    - name: Setup .NET 8
       uses: actions/setup-dotnet@v3
       with:
-        dotnet-version: 7.0.x
+        dotnet-version: 8.0.x
         include-prerelease: true
             
     - name: Build
@@ -61,23 +61,17 @@ jobs:
             
     - name: Move output
       run: mv "${{ env.CUO_OUTPUT_PATH }}/${{ env.CUO_ZIP_NAME }}" upload
-              
-    - name: Remove old Release
-      uses: dev-drprasad/delete-tag-and-release@v0.2.1
-      with:
-        delete_release: true
-        tag_name: ClassicUO-dev-release
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        
+                      
     - name: Upload Release
       uses: ncipollo/release-action@v1
       with:
         artifacts: "upload/${{ env.CUO_ZIP_NAME }}"
         name: 'ClassicUO dev preview'
         body: 'This build may not be safe: use it at your own risk.'
+        draft: false
         prerelease: true
-        tag: ClassicUO-dev-release
+        allowUpdates: true
+        tag: 'ClassicUO-dev-release'
         token: ${{ secrets.GITHUB_TOKEN }}
         
     - name: FTP Deploy
@@ -89,4 +83,31 @@ jobs:
         protocol: ftps
         server-dir: /www.classicuo.eu/dev/deploy/
         local-dir: upload/
-        
+
+    - name: Repo Preparation - clone
+      uses: actions/checkout@master
+      with:
+       repository: ClassicUO/deploy
+       path: deploy
+       ssh-key: ${{ secrets.SSH_DEPLOY_KEY }}
+       
+    - name: Repo Preparation - prepare
+      run: |       
+       cp -rdf ${{ env.CUO_OUTPUT_PATH }}/* deploy/client/win-x64/
+       cp -rdf ${{ env.CUO_OUTPUT_PATH }}/* deploy/client/linux-x64/
+       cp -rdf ${{ env.CUO_OUTPUT_PATH }}/* deploy/client/osx-x64/
+       
+       cp upload/manifest.xml deploy/client/win-x64_manifest.xml
+       cp upload/manifest.xml deploy/client/linux-x64_manifest.xml
+       cp upload/manifest.xml deploy/client/osx-x64_manifest.xml
+       
+    - name: Pushes to another repository
+      uses: cpina/github-action-push-to-another-repository@main
+      env:
+        SSH_DEPLOY_KEY: ${{ secrets.SSH_DEPLOY_KEY }}
+      with:
+        source-directory: deploy/
+        destination-github-username: 'ClassicUO'
+        destination-repository-name: 'deploy'
+        commit-message: 'release ${{ env.CUO_ASSEMBLY_VERSION }}'
+        target-branch: main
