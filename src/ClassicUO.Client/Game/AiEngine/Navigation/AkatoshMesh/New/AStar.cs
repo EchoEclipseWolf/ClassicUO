@@ -38,7 +38,7 @@ namespace AkatoshQuester.Helpers.Cartography
 		SortableList.Equality SameNodesReached = new SortableList.Equality( Track.SameEndNode );
 
 		/// <summary>
-		/// Heuristic based on the euclidian distance : Sqrt(Dx²+Dy²+Dz²)
+		/// Heuristic based on the euclidian distance : Sqrt(Dxï¿½+Dyï¿½+Dzï¿½)
 		/// </summary>
 		public static Heuristic EuclidianHeuristic
 		{ get { return Node.EuclidianDistance; } }
@@ -204,9 +204,6 @@ namespace AkatoshQuester.Helpers.Cartography
             foreach (var A in TrackToPropagate.EndNode.Linked) {
                 try {
                     var node = Navigation.CurrentMesh.FindByNodeLink(A);
-                    if (node is AkatoshTeleporterNode teleNode) {
-                        int bob = 1;
-                    }
 
                     if (SearchedIds.Contains(A.Id)) {
                         continue;
@@ -216,6 +213,13 @@ namespace AkatoshQuester.Helpers.Cartography
                         Navigation.LoadGridForFilePoint(nodeLinkedFile);
                     }
 
+                    if (!node.Passable) {
+                        node.Passable = true;
+                        var grid = Navigation.CurrentMesh.GetGridByFilePoint(Navigation.GetFilePointFromPoint(node.Position), node.MapIndex);
+                        grid.NeedsToSave = true;
+                        Navigation.NavigationNeedsSaving = true;
+                    }
+                    
                     if (node.Passable) {
                         Track Successor = new Track(TrackToPropagate, node);
                         int PosNF = _Closed.IndexOf(Successor, SameNodesReached);

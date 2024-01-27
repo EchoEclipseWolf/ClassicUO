@@ -182,10 +182,7 @@ namespace AkatoshQuester.Helpers.Cartography
                 return;
 
             Linked.Add(new NodeLink(node.Id, Navigation.GetFilePointFromPoint(node.Position), node.MapIndex, node.XyHash));
-
-            if (Linked.Count > 10) {
-                int bob = 1;
-            }
+            
             if (!oneWay) {
                 node.AddLink(this, true);
             }
@@ -358,7 +355,7 @@ namespace AkatoshQuester.Helpers.Cartography
         }
 
         /// <summary>
-        /// Returns the euclidian distance between two nodes : Sqrt(Dx²+Dy²+Dz²)
+        /// Returns the euclidian distance between two nodes : Sqrt(DxÂ²+DyÂ²+DzÂ²)
         /// </summary>
         /// <param name="N1">First node.</param>
         /// <param name="N2">Second node.</param>
@@ -374,7 +371,7 @@ namespace AkatoshQuester.Helpers.Cartography
         }
 
 		/// <summary>
-		/// Returns the square euclidian distance between two nodes : Dx²+Dy²+Dz²
+		/// Returns the square euclidian distance between two nodes : DxÂ²+DyÂ²+DzÂ²
 		/// </summary>
 		/// <exception cref="ArgumentNullException">Argument nodes must not be null.</exception>
 		/// <param name="N1">First node.</param>

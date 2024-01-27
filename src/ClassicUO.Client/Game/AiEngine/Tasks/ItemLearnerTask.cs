@@ -91,10 +91,11 @@ namespace ClassicUO.Game.AiEngine.Tasks {
                     var elapsed = _masterStorageTimer.ElapsedMilliseconds;
                     _masterStorageTimer.Restart();
                 }
-
             }
 
-
+            if (ItemsMemory.Instance == null) {
+                ItemsMemory.Load();
+            }
             ItemsMemory.Instance.Runebooks.Clear();
 
             var runebooksInBackpack = await ItemsHelper.GetPlayerBackpackItemsById(false, 0x22C5, -1);
